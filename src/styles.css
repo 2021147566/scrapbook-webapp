@@ -1,7 +1,7 @@
 :root {
-  font-family: Inter, "Segoe UI", sans-serif;
-  color: #1f2937;
-  background: #f6f3ee;
+  font-family: "Noto Sans KR", Inter, "Segoe UI", sans-serif;
+  color: #2f2518;
+  background: #efe4cf;
 }
 
 * {
@@ -10,6 +10,10 @@
 
 body {
   margin: 0;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.35), transparent 30%),
+    radial-gradient(circle at 80% 30%, rgba(152, 111, 60, 0.09), transparent 40%),
+    #efe4cf;
 }
 
 a {
@@ -25,9 +29,11 @@ a {
 .topbar {
   display: grid;
   gap: 10px;
-  background: white;
-  border-radius: 12px;
+  background: linear-gradient(165deg, #f4ead7 0%, #e6d3b0 100%);
+  border: 1px solid #ccb08a;
+  border-radius: 14px;
   padding: 16px;
+  box-shadow: 0 8px 24px rgba(73, 48, 22, 0.14);
 }
 
 .row {
@@ -43,24 +49,52 @@ a {
 .page,
 .settings {
   margin-top: 12px;
-  background: white;
+  background: linear-gradient(180deg, #f9f4e9 0%, #f0e4cf 100%);
+  border: 1px solid #d8bf9d;
   border-radius: 12px;
   padding: 16px;
+  box-shadow: 0 10px 26px rgba(67, 45, 24, 0.1);
 }
 
 .toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: block;
   margin-bottom: 14px;
+}
+
+.upload-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #ccb08a;
+  border-radius: 12px;
+  background: linear-gradient(170deg, #fff9ef 0%, #f2e6d4 100%);
+}
+
+.upload-card strong {
+  display: block;
+  font-size: 14px;
+  color: #5b3d1e;
+}
+
+.upload-card small {
+  color: #7a6245;
+}
+
+.upload-card input {
+  position: relative;
+  display: none;
 }
 
 .file-upload {
   position: relative;
   overflow: hidden;
-  border: 1px solid #ddd;
+  border: 1px solid #b68f60;
   border-radius: 10px;
   padding: 8px 12px;
+  background: linear-gradient(180deg, #fff4df 0%, #ead4b1 100%);
+  color: #4b3217;
   cursor: pointer;
 }
 
@@ -82,11 +116,12 @@ a {
   flex-direction: column;
   align-items: stretch;
   min-height: 260px;
-  border: 1px solid #eee;
+  border: 1px solid #dcc6a8;
   border-radius: 8px;
   padding: 8px;
   text-align: left;
-  background: #fff;
+  background: #fff8eb;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
 .calendar-cell.muted {
@@ -110,14 +145,26 @@ a {
 .routine-dots {
   display: inline-flex;
   gap: 4px;
-  opacity: 0.35;
+  opacity: 1;
 }
 
 .routine-dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #d1d5db;
+  background: #cdbca5;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.routine-dot:hover {
+  transform: scale(1.18);
+  filter: saturate(1.1);
+}
+
+.routine-dot:focus-visible {
+  outline: 2px solid #7c5a33;
+  outline-offset: 1px;
 }
 
 .routine-dot.done.dot-1 {
@@ -229,6 +276,10 @@ a {
 
 .routine-control {
   margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px dashed #c5a37e;
+  border-radius: 10px;
+  background: rgba(255, 248, 234, 0.72);
 }
 
 .routine-btn.active {
@@ -245,6 +296,24 @@ a {
 
 .routine-btn.active.dot-3 {
   background: #f97316;
+}
+
+.topbar button,
+.upload-card button,
+button {
+  border: 1px solid #b68f60;
+  background: linear-gradient(180deg, #fff4df 0%, #ead4b1 100%);
+  color: #4b3217;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(95, 66, 32, 0.2);
+}
+
+.topbar button:hover,
+.upload-card button:hover,
+button:hover {
+  filter: brightness(1.03);
 }
 
 .modal-backdrop {
@@ -276,8 +345,9 @@ a {
 
 .book-layout {
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: minmax(560px, 1.45fr) minmax(320px, 0.9fr);
   gap: 12px;
+  align-items: stretch;
   margin-top: 12px;
 }
 
@@ -290,6 +360,11 @@ a {
 
 .book-page {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 3 / 4;
+  min-height: min(90vh, 1080px);
+  padding: 16px 28px 16px 16px;
   background: linear-gradient(145deg, #f1e7d2 0%, #e3d2b4 100%);
   border: 1px solid #c9b08d;
   box-shadow:
@@ -297,10 +372,11 @@ a {
     0 14px 30px rgba(78, 54, 28, 0.22);
 }
 
-.book-page::before {
+/* 오른쪽 제본(스파인) 느낌 */
+.book-page::after {
   content: '';
   position: absolute;
-  left: 12px;
+  right: 12px;
   top: 10px;
   bottom: 10px;
   width: 6px;
@@ -310,7 +386,12 @@ a {
     rgba(96, 68, 35, 0.5) 0 6px,
     rgba(96, 68, 35, 0.18) 6px 12px
   );
-  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.3);
+  box-shadow: -1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+.diary-panel {
+  min-height: min(90vh, 1080px);
+  align-self: stretch;
 }
 
 .book-page > * {
@@ -329,6 +410,11 @@ a {
 
 .book-photo-stage {
   margin: 8px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  justify-content: flex-start;
 }
 
 .book-count {
@@ -338,17 +424,22 @@ a {
   color: #6b7280;
 }
 
-/* 필름 인화 프레임 + 책장에 사선으로 붙인 느낌 */
+/* 필름 인화 프레임 — 세로 스택, 한 줄에 한 장 */
 .book-film-stage {
   position: relative;
   width: 100%;
-  max-width: 460px;
+  max-width: min(100%, 620px);
   margin: 0 auto;
+}
+
+.book-film-stage .film-frame-mat img {
+  max-width: 100%;
+  width: 100%;
 }
 
 .film-frame {
   background: linear-gradient(165deg, #faf8f3 0%, #ebe8e0 100%);
-  padding: 8px 14px 28px;
+  padding: 12px 16px 32px;
   border-radius: 3px;
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.22),
@@ -385,112 +476,55 @@ a {
   text-overflow: ellipsis;
 }
 
-/* 1장 */
-.book-film-stage--n1 {
-  min-height: 300px;
+.book-film-stage--vertical {
+  flex: 1 1 auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px 0;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: clamp(14px, 2.6vh, 26px);
+  width: 100%;
+  max-width: 620px;
+  padding: 8px 0 20px;
+  box-sizing: border-box;
 }
 
-.book-film-stage--n1 .film-frame {
+.book-film-stage--vertical .film-frame {
   position: relative;
-  transform: rotate(-4deg);
-}
-
-/* 2장: 사선 겹침 */
-.book-film-stage--n2 {
-  min-height: 340px;
-}
-
-.book-film-stage--n2 .film-frame {
-  position: absolute;
-  width: min(46%, 210px);
-}
-
-.book-film-stage--n2 .film-frame--slot-0 {
-  left: 4%;
-  top: 10%;
-  z-index: 2;
-  transform: rotate(-11deg);
-}
-
-.book-film-stage--n2 .film-frame--slot-1 {
-  right: 2%;
-  top: 18%;
-  z-index: 1;
-  transform: rotate(9deg);
-}
-
-/* 3장: 부채꼴 겹침 */
-.book-film-stage--n3 {
-  min-height: 420px;
-}
-
-.book-film-stage--n3 .film-frame {
-  position: absolute;
-  width: min(40%, 195px);
-}
-
-.book-film-stage--n3 .film-frame--slot-0 {
-  left: 2%;
-  top: 26%;
-  z-index: 1;
-  transform: rotate(-14deg);
-}
-
-.book-film-stage--n3 .film-frame--slot-1 {
-  left: 50%;
-  top: 4%;
-  z-index: 3;
-  transform: translateX(-50%) rotate(3deg);
-}
-
-.book-film-stage--n3 .film-frame--slot-2 {
-  right: 2%;
-  top: 28%;
-  z-index: 2;
-  transform: rotate(12deg);
-}
-
-/* 4장 이상: 작은 프레임으로 전부 노출 */
-.book-film-stage--many {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 12px 10px;
-  padding: 12px 0;
-  min-height: auto;
-}
-
-.book-film-stage--many .film-frame {
-  position: relative;
-  width: min(44%, 170px);
+  width: min(100%, 560px);
   flex: 0 0 auto;
+  margin: 0 auto;
 }
 
-.book-film-stage--many .film-frame-mat img {
-  max-width: 100%;
-}
-
-.book-film-stage--many .film-frame:nth-child(4n + 1) {
-  transform: rotate(-6deg);
-}
-
-.book-film-stage--many .film-frame:nth-child(4n + 2) {
-  transform: rotate(5deg);
-  margin-top: 8px;
-}
-
-.book-film-stage--many .film-frame:nth-child(4n + 3) {
+/* 살짝 기울임 (1:1 비율 유지) */
+.book-film-stage--vertical .film-frame:nth-child(4n + 1) {
   transform: rotate(-4deg);
 }
 
-.book-film-stage--many .film-frame:nth-child(4n) {
-  transform: rotate(7deg);
-  margin-top: 6px;
+.book-film-stage--vertical .film-frame:nth-child(4n + 2) {
+  transform: rotate(5deg);
+}
+
+.book-film-stage--vertical .film-frame:nth-child(4n + 3) {
+  transform: rotate(-3deg);
+}
+
+.book-film-stage--vertical .film-frame:nth-child(4n) {
+  transform: rotate(6deg);
+}
+
+/* 책 모드에서는 사진 주변 검은 매트 제거 */
+.book-film-stage .film-frame-mat {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.book-film-stage .film-frame-mat img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border: none;
 }
 
 .diary-panel textarea {
@@ -500,12 +534,4 @@ a {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 10px;
-}
-
-button {
-  border: 1px solid #ddd;
-  background: #fafafa;
-  border-radius: 8px;
-  padding: 8px 10px;
-  cursor: pointer;
 }

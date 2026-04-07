@@ -14,6 +14,7 @@ export function CalendarView() {
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
   const routineByDate = useScrapStore((s) => s.routineByDate);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
+  const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
   const grid = useMemo(() => buildGrid(monthCursor), [monthCursor]);
   const currentMonth = dayjs(monthCursor).month();
 
@@ -36,7 +37,24 @@ export function CalendarView() {
               <span className="day-number">{day.date()}</span>
               <span className="routine-dots" aria-hidden>
                 {routines.map((done, i) => (
-                  <span key={`${key}-${i}`} className={clsx('routine-dot', `dot-${i + 1}`, { done })} />
+                  <span
+                    key={`${key}-${i}`}
+                    className={clsx('routine-dot', `dot-${i + 1}`, { done })}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleRoutine(key, i);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleRoutine(key, i);
+                      }
+                    }}
+                    aria-label={`${key} 루틴 ${i + 1} 토글`}
+                  />
                 ))}
               </span>
             </div>

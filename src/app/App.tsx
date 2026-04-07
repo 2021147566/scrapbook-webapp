@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CalendarView } from '../features/calendar/CalendarView';
 import { CropModal } from '../features/crop/CropModal';
@@ -93,7 +93,6 @@ function Header() {
   const location = useLocation();
   return (
     <header className="topbar">
-      <h1>Scrapbook</h1>
       <div className="row">
         <button onClick={() => setMonthCursor(dayjs(monthCursor).subtract(1, 'month').toDate())}>◀</button>
         <strong>{dayjs(monthCursor).format('YYYY MMMM')}</strong>
@@ -126,6 +125,7 @@ function CalendarPage() {
   const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
   const [pending, setPending] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
   const routines = routineByDate[selectedDate] ?? [false, false, false];
 
@@ -149,11 +149,24 @@ function CalendarPage() {
   return (
     <div className="page">
       <section className="toolbar">
-        <label className="file-upload">
-          사진 업로드
-          <input type="file" accept="image/*" onChange={(e) => onFiles(e.target.files)} />
-        </label>
-        <small>Ctrl+V로 이미지 붙여넣기 가능</small>
+        <div className="upload-card">
+          <div>
+            <strong>사진 추가</strong>
+            <small>업로드 또는 Ctrl+V 붙여넣기</small>
+          </div>
+          <button type="button" onClick={() => fileInputRef.current?.click()}>
+            이미지 선택
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              onFiles(e.target.files);
+              e.currentTarget.value = '';
+            }}
+          />
+        </div>
       </section>
       <section className="routine-control">
         <small>루틴 점 표시</small>
