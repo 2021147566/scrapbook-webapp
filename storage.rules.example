@@ -1,12 +1,27 @@
-// Firebase Console → Storage → 규칙
-// GUEST_UID 를 guest.ts 의 UID 와 동일하게 교체 후 게시
+// =============================================================================
+// Storage → 규칙 → 붙여넣기 후 [게시]
+//
+// 동작 요약
+// - 비로그인: scrapbooks/{게스트UID}/ 아래 파일만 읽기 (snapshot.json 등 공개 일기)
+// - 로그인: scrapbooks/{본인 UID}/ 아래 파일 읽기·쓰기 (업로드·동기화)
+// - 다른 사람 경로: 접근 불가
+//
+// UID는 src/config/guest.ts 의 GUEST_DEFAULT_UID_FALLBACK 과 반드시 동일해야 함.
+// =============================================================================
 
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /scrapbooks/{userId}/{fileName} {
-      allow read: if userId == 'GUEST_UID';
+
+    match /scrapbooks/{userId}/{allPaths=**} {
+      // 읽기: 공개 게스트 폴더 OR 로그인한 사용자의 본인 폴더
+      allow read: if userId == 'xYC8k14kzsOztdUbD0XZ0kJ9xho1'
+        || (request.auth != null && request.auth.uid == userId);
+
+      // 쓰기: 로그인한 사용자만, 본인 폴더만
       allow write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // scrapbooks 외 경로는 규칙 없음 → 기본 거부
   }
 }
