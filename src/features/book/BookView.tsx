@@ -12,7 +12,8 @@ export function BookView() {
   const [index, setIndex] = useState(0);
   const safeIndex = Math.min(index, Math.max(dates.length - 1, 0));
   const currentDate = dates[safeIndex];
-  const currentImage = currentDate ? imagesByDate[currentDate]?.[0] : null;
+  const currentImages = currentDate ? imagesByDate[currentDate] ?? [] : [];
+  const currentImage = currentImages[0] ?? null;
 
   return (
     <div className="book-layout">
@@ -26,7 +27,30 @@ export function BookView() {
               </p>
             </header>
             {currentImage ? (
-              <img src={currentImage.dataUrl} alt="" className="book-image stamp-clip" />
+              <div className="book-photo-stage">
+                <div className="photo-stack">
+                  {currentImages.length > 2 ? (
+                    <img
+                      src={currentImages[2].dataUrl}
+                      alt=""
+                      className="stack-image-back layer-far stamp-clip"
+                      aria-hidden
+                    />
+                  ) : null}
+                  {currentImages.length > 1 ? (
+                    <img
+                      src={currentImages[1].dataUrl}
+                      alt=""
+                      className="stack-image-back layer-mid stamp-clip"
+                      aria-hidden
+                    />
+                  ) : null}
+                  <img src={currentImage.dataUrl} alt="" className="book-image stamp-clip" />
+                </div>
+                {currentImages.length > 1 ? (
+                  <small className="book-count">이 날의 사진 {currentImages.length}장</small>
+                ) : null}
+              </div>
             ) : (
               <p>이미지 없음</p>
             )}
