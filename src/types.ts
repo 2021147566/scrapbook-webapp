@@ -4,6 +4,7 @@ export interface ScrapImage {
   id: string;
   date: DateKey;
   dataUrl: string;
+  title?: string;
   createdAt: number;
   updatedAt: number;
 }

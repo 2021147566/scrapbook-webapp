@@ -122,6 +122,7 @@ function CalendarPage() {
   const addImage = useScrapStore((s) => s.addImage);
   const removeImage = useScrapStore((s) => s.removeImage);
   const moveImage = useScrapStore((s) => s.moveImage);
+  const setImageTitle = useScrapStore((s) => s.setImageTitle);
   const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
   const [pending, setPending] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -187,6 +188,12 @@ function CalendarPage() {
               }}
             >
               <img src={img.dataUrl} alt="" />
+              <input
+                className="image-title-input"
+                value={img.title ?? ''}
+                onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
+                placeholder="사진 이름"
+              />
               <div className="image-card-actions">
                 <button onClick={() => removeImage(selectedDate, img.id)}>삭제</button>
                 <button disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>

@@ -204,6 +204,14 @@ a {
   object-fit: cover;
 }
 
+.image-title-input {
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
 .image-card-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -301,7 +309,7 @@ a {
 
 .film-frame {
   background: linear-gradient(165deg, #faf8f3 0%, #ebe8e0 100%);
-  padding: 8px 14px 20px;
+  padding: 8px 14px 28px;
   border-radius: 3px;
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.22),
@@ -326,6 +334,16 @@ a {
   max-width: 200px;
   aspect-ratio: 1 / 1;
   object-fit: cover;
+}
+
+.film-caption {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 1장 */

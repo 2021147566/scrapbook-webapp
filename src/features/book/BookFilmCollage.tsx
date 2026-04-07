@@ -11,6 +11,7 @@ function layoutForCount(n: number): LayoutKey {
 interface FilmImage {
   id: string;
   dataUrl: string;
+  title?: string;
 }
 
 export function BookFilmCollage({ images }: { images: FilmImage[] }) {
@@ -25,6 +26,7 @@ export function BookFilmCollage({ images }: { images: FilmImage[] }) {
           <div className="film-frame-mat">
             <img src={img.dataUrl} alt="" />
           </div>
+          {img.title ? <div className="film-caption">{img.title}</div> : null}
         </div>
       ))}
     </div>

@@ -16,6 +16,7 @@ interface ScrapState {
   addImage: (date: DateKey, dataUrl: string) => void;
   removeImage: (date: DateKey, imageId: string) => void;
   moveImage: (date: DateKey, fromIndex: number, toIndex: number) => void;
+  setImageTitle: (date: DateKey, imageId: string, title: string) => void;
   toggleRoutine: (date: DateKey, routineIndex: number) => void;
   setDiary: (date: DateKey, text: string) => void;
   loadSnapshot: (snapshot: PersistedSnapshot) => void;
@@ -63,6 +64,13 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
       }
       const [picked] = list.splice(fromIndex, 1);
       list.splice(toIndex, 0, { ...picked, updatedAt: Date.now() });
+      return { imagesByDate: { ...state.imagesByDate, [date]: list } };
+    }),
+  setImageTitle: (date, imageId, title) =>
+    set((state) => {
+      const list = (state.imagesByDate[date] ?? []).map((img) =>
+        img.id === imageId ? { ...img, title, updatedAt: Date.now() } : img,
+      );
       return { imagesByDate: { ...state.imagesByDate, [date]: list } };
     }),
   toggleRoutine: (date, routineIndex) =>
