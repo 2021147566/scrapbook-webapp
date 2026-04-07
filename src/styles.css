@@ -185,6 +185,14 @@ a {
   margin-top: 8px;
 }
 
+.image-card {
+  cursor: grab;
+}
+
+.image-card:active {
+  cursor: grabbing;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

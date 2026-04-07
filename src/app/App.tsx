@@ -111,6 +111,7 @@ function CalendarPage() {
   const removeImage = useScrapStore((s) => s.removeImage);
   const moveImage = useScrapStore((s) => s.moveImage);
   const [pending, setPending] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
 
   const onFiles = async (files: FileList | null) => {
@@ -144,22 +145,22 @@ function CalendarPage() {
         <h3>{selectedDate} 사진</h3>
         <div className="selected-grid">
           {images.map((img, index) => (
-            <article key={img.id} className="image-card">
+            <article
+              key={img.id}
+              className="image-card"
+              draggable
+              onDragStart={() => setDragIndex(index)}
+              onDragEnd={() => setDragIndex(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragIndex === null) return;
+                moveImage(selectedDate, dragIndex, index);
+                setDragIndex(null);
+              }}
+            >
               <img src={img.dataUrl} alt="" className="stamp-clip" />
               <div className="image-card-actions">
                 <button onClick={() => removeImage(selectedDate, img.id)}>삭제</button>
-                <button
-                  disabled={index === 0}
-                  onClick={() => moveImage(selectedDate, index, index - 1)}
-                >
-                  앞으로
-                </button>
-                <button
-                  disabled={index === images.length - 1}
-                  onClick={() => moveImage(selectedDate, index, index + 1)}
-                >
-                  뒤로
-                </button>
                 <button disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
                   대표로
                 </button>
