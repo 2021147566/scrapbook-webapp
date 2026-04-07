@@ -163,7 +163,7 @@ function CalendarPage() {
 
 function SettingsPage() {
   const loadState = useScrapStore((s) => s.loadSnapshot);
-  const snapshot = useScrapStore((s) => s.toSnapshot());
+  const toSnapshot = useScrapStore((s) => s.toSnapshot);
   const [status, setStatus] = useState('로컬 모드');
   const hasFirebase = useMemo(() => isFirebaseConfigured(), []);
   const [autoSync, setAutoSync] = useState(false);
@@ -179,15 +179,16 @@ function SettingsPage() {
     if (!hasFirebase || !autoSync || !getCurrentUser()) return;
     const timer = setInterval(async () => {
       try {
-        await pushSnapshot(snapshot);
+        await pushSnapshot(toSnapshot());
       } catch {
         // 네트워크 단절 시 다음 주기에 재시도.
       }
     }, 10000);
     return () => clearInterval(timer);
-  }, [autoSync, hasFirebase, snapshot]);
+  }, [autoSync, hasFirebase, toSnapshot]);
 
   const downloadBackup = async () => {
+    const snapshot = toSnapshot();
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -232,7 +233,7 @@ function SettingsPage() {
         <button
           disabled={!hasFirebase}
           onClick={async () => {
-            await pushSnapshot(snapshot);
+            await pushSnapshot(toSnapshot());
             setStatus('클라우드로 업로드 완료');
           }}
         >
@@ -243,7 +244,7 @@ function SettingsPage() {
           onClick={async () => {
             const cloud = await pullSnapshot();
             if (cloud) {
-              const merged = mergeSnapshots(snapshot, cloud);
+              const merged = mergeSnapshots(toSnapshot(), cloud);
               loadState(merged);
               setStatus('클라우드 병합 완료(최신 수정 우선)');
             }
