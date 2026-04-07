@@ -8,6 +8,7 @@ import { CropModal } from '../features/crop/CropModal';
 import { BookView } from '../features/book/BookView';
 import { importSnapshot, loadSnapshot, saveSnapshot } from '../lib/storage/indexeddb';
 import {
+  completeGoogleRedirectIfAny,
   getCurrentUser,
   isFirebaseConfigured,
   loginWithGoogle,
@@ -403,8 +404,16 @@ function SettingsPage() {
         <button
           disabled={!hasFirebase}
           onClick={async () => {
-            const user = await loginWithGoogle();
-            setStatus(`${user.displayName ?? user.email} 로그인`);
+            try {
+              const user = await loginWithGoogle();
+              if (user) {
+                setStatus(`${user.displayName ?? user.email} 로그인`);
+              } else {
+                setStatus('Google 로그인 화면으로 이동 중…');
+              }
+            } catch (e) {
+              setStatus(e instanceof Error ? e.message : '로그인 실패');
+            }
           }}
         >
           Google 로그인
@@ -452,6 +461,11 @@ function SettingsPage() {
 
 export function App() {
   usePersistState();
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+    void completeGoogleRedirectIfAny();
+  }, []);
+
   return (
     <div className="app">
       <Header />

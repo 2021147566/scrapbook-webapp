@@ -2,8 +2,10 @@ import { initializeApp, type FirebaseOptions } from 'firebase/app';
 import {
   GoogleAuthProvider,
   getAuth,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from 'firebase/auth';
@@ -42,10 +44,46 @@ export function isFirebaseConfigured(): boolean {
   return Boolean(getEnvConfig());
 }
 
-export async function loginWithGoogle(): Promise<User> {
+/** 모바일·태블릿 브라우저는 팝업 로그인이 차단되거나 실패하는 경우가 많아 리다이렉트를 쓴다. */
+function preferGoogleRedirect(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  if (/Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
+  // iPadOS 13+ Safari: User-Agent가 Macintosh로 나올 수 있음
+  if (navigator.maxTouchPoints > 0 && /Macintosh/.test(ua)) return true;
+  return false;
+}
+
+/**
+ * Google 로그인 리다이렉트로 돌아온 뒤 페이지가 다시 로드될 때 반드시 호출해야 한다.
+ * (모바일 signInWithRedirect 플로우 완료)
+ */
+export async function completeGoogleRedirectIfAny(): Promise<User | null> {
+  if (!isFirebaseConfigured()) return null;
   ensureFirebase();
   const auth = getAuth();
-  const result = await signInWithPopup(auth, new GoogleAuthProvider());
+  try {
+    const result = await getRedirectResult(auth);
+    if (result?.user) {
+      authUser = result.user;
+      return result.user;
+    }
+  } catch {
+    // 리다이렉트 로그인 실패·취소 등 — onAuthStateChanged가 최종 상태를 맞춤
+  }
+  return null;
+}
+
+/** 리다이렉트가 시작되면 페이지가 이동하므로 User를 반환하지 않을 수 있다. */
+export async function loginWithGoogle(): Promise<User | undefined> {
+  ensureFirebase();
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
+  if (preferGoogleRedirect()) {
+    await signInWithRedirect(auth, provider);
+    return undefined;
+  }
+  const result = await signInWithPopup(auth, provider);
   authUser = result.user;
   return result.user;
 }
