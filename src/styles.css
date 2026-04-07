@@ -362,7 +362,7 @@ button:hover {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: min(22vh, 265px);
+  min-height: min(14vh, 180px);
   padding: 16px 28px 16px 16px;
   background: linear-gradient(145deg, #f1e7d2 0%, #e3d2b4 100%);
   border: 1px solid #c9b08d;
