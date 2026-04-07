@@ -210,7 +210,7 @@ function CalendarPage() {
               <div className="image-card-actions">
                 <button onClick={() => removeImage(selectedDate, img.id)}>삭제</button>
                 <button disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
-                  대표로
+                  대표
                 </button>
               </div>
             </article>

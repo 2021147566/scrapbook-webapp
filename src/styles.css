@@ -363,7 +363,7 @@ button:hover {
   display: flex;
   flex-direction: column;
   aspect-ratio: 3 / 4;
-  min-height: min(90vh, 1080px);
+  min-height: min(44vh, 530px);
   padding: 16px 28px 16px 16px;
   background: linear-gradient(145deg, #f1e7d2 0%, #e3d2b4 100%);
   border: 1px solid #c9b08d;
@@ -390,7 +390,7 @@ button:hover {
 }
 
 .diary-panel {
-  min-height: min(90vh, 1080px);
+  min-height: min(44vh, 530px);
   align-self: stretch;
 }
 
@@ -469,7 +469,8 @@ button:hover {
 .film-caption {
   margin-top: 8px;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: #374151;
   white-space: nowrap;
   overflow: hidden;
