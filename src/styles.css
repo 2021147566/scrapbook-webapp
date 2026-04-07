@@ -107,6 +107,13 @@ a {
   color: #3d2912;
 }
 
+/* 좁은 화면: 달력 본문에 주간 뷰가 들어가므로 헤더 월 이동은 숨김 */
+@media (max-width: 960px) {
+  .topbar .topbar-month {
+    display: none;
+  }
+}
+
 .row {
   display: flex;
   gap: 8px;
@@ -336,6 +343,21 @@ a {
   padding: 10px 12px;
   margin: 0 0 8px;
   box-shadow: 0 6px 18px rgba(73, 48, 22, 0.12);
+}
+
+/* 달력 페이지 내 주간 스트립(모바일 레이아웃 전용, /m 라우트 없음) */
+.calendar-week-strip {
+  flex-shrink: 0;
+  background: linear-gradient(165deg, #f4ead7 0%, #e6d3b0 100%);
+  border: 1px solid #ccb08a;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 0 0 8px;
+  box-shadow: 0 6px 18px rgba(73, 48, 22, 0.12);
+}
+
+.calendar-week-strip .mobile-week-nav {
+  margin-bottom: 0;
 }
 
 .mobile-week-nav {

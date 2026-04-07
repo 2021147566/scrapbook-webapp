@@ -27,6 +27,23 @@ import { normalizeRoutineLabels } from '../types';
 /** 비로그인 기본 일기(의서) 표시용 — UI 문구 */
 const GUEST_OWNER_EMAIL = 'euiseo0531303@gmail.com';
 
+/** 달력 그리드·사이드바와 동일 기준 (styles.css) */
+const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setMatches(mq.matches);
+    mq.addEventListener('change', onChange);
+    setMatches(mq.matches);
+    return () => mq.removeEventListener('change', onChange);
+  }, [query]);
+  return matches;
+}
+
 function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): PersistedSnapshot {
   const imagesByDate: PersistedSnapshot['imagesByDate'] = { ...local.imagesByDate };
   for (const [date, images] of Object.entries(cloud.imagesByDate)) {
@@ -140,9 +157,6 @@ function Header() {
             오늘 {dayjs().locale('ko').format('M/D ddd')}
           </span>
           <nav className="topbar-links row" aria-label="화면 전환">
-            <Link className={location.pathname === '/m' ? 'active' : ''} to="/m">
-              모바일
-            </Link>
             <Link className={location.pathname === '/calendar' ? 'active' : ''} to="/calendar">
               달력
             </Link>
@@ -169,25 +183,12 @@ function Header() {
   );
 }
 
-function CalendarPage() {
-  return (
-    <div className="page page--calendar">
-      <div className="calendar-page-layout">
-        <CalendarWeekdayHeader />
-        <CalendarDateGrid />
-        <CalendarSidebar />
-      </div>
-    </div>
-  );
-}
-
-function MobileWeekTopbar() {
+/** 좁은 화면 달력 본문 상단: 이번 주만 (전역 헤더에 월 이동 숨김은 CSS) */
+function CalendarWeekStrip() {
   const weekCursor = useScrapStore((s) => s.weekCursor);
   const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
-  const location = useLocation();
-  const authUser = useFirebaseAuthUser();
 
   const weekStart = dayjs(weekCursor).day(0);
   const weekEnd = weekStart.add(6, 'day');
@@ -209,7 +210,7 @@ function MobileWeekTopbar() {
   };
 
   return (
-    <header className="mobile-topbar">
+    <div className="calendar-week-strip">
       <div className="mobile-week-nav">
         <button type="button" className="mobile-week-btn" onClick={() => shiftWeek(-1)} aria-label="이전 주">
           ◀
@@ -225,47 +226,43 @@ function MobileWeekTopbar() {
           오늘
         </button>
       </div>
-      <nav className="mobile-topbar-links" aria-label="화면 전환">
-        <Link className={location.pathname === '/m' ? 'active' : ''} to="/m">
-          주간
-        </Link>
-        <Link to="/calendar">달력</Link>
-        <Link to="/book">책</Link>
-        <Link to="/settings">설정</Link>
-      </nav>
-      <div className="mobile-guest-row" aria-label="게스트 안내">
-        <span className="topbar-guest-title">의서의 일기</span>
-        {!authUser ? (
-          <Link className="topbar-guest-cta" to="/settings">
-            나도 일기 쓰기
-          </Link>
-        ) : (
-          <span className="topbar-guest-logged">{authUser.email ?? '로그인됨'}</span>
-        )}
-      </div>
-    </header>
+    </div>
   );
 }
 
-function MobileCalendarPage() {
+function CalendarPage() {
+  const isMobileLayout = useMediaQuery(MOBILE_CALENDAR_MEDIA);
   const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
 
   useEffect(() => {
+    if (!isMobileLayout) return;
     const d = useScrapStore.getState().selectedDate;
     const w = dayjs(d).day(0).toDate();
     setWeekCursor(w);
     setMonthCursor(dayjs(d).startOf('month').toDate());
-  }, [setWeekCursor, setMonthCursor]);
+  }, [isMobileLayout, setWeekCursor, setMonthCursor]);
+
+  if (isMobileLayout) {
+    return (
+      <div className="page page--calendar page--mobile-calendar">
+        <CalendarWeekStrip />
+        <div className="mobile-week-calendar-block">
+          <CalendarWeekdayHeader />
+          <CalendarWeekGrid />
+        </div>
+        <div className="mobile-sidebar-scroll">
+          <CalendarSidebar />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="page page--mobile-calendar">
-      <MobileWeekTopbar />
-      <div className="mobile-week-calendar-block">
+    <div className="page page--calendar">
+      <div className="calendar-page-layout">
         <CalendarWeekdayHeader />
-        <CalendarWeekGrid />
-      </div>
-      <div className="mobile-sidebar-scroll">
+        <CalendarDateGrid />
         <CalendarSidebar />
       </div>
     </div>
@@ -463,15 +460,14 @@ function SettingsPage() {
 
 export function App() {
   usePersistState();
-  const location = useLocation();
 
   return (
     <div className="app">
-      {location.pathname !== '/m' ? <Header /> : null}
+      <Header />
       <Routes>
         <Route path="/" element={<Navigate to="/calendar" replace />} />
+        <Route path="/m" element={<Navigate to="/calendar" replace />} />
         <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/m" element={<MobileCalendarPage />} />
         <Route path="/book" element={<BookView />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
