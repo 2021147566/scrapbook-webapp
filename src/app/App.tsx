@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/en';
+import 'dayjs/locale/ko';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CalendarView } from '../features/calendar/CalendarView';
@@ -128,9 +129,11 @@ function Header() {
               설정
             </Link>
           </nav>
-          <span className="topbar-date" title={selectedDate}>
-            {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
-          </span>
+          {location.pathname !== '/calendar' ? (
+            <span className="topbar-date" title={selectedDate}>
+              {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
+            </span>
+          ) : null}
         </div>
       </div>
     </header>
@@ -138,6 +141,7 @@ function Header() {
 }
 
 function CalendarPage() {
+  const monthCursor = useScrapStore((s) => s.monthCursor);
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
   const routineByDate = useScrapStore((s) => s.routineByDate);
@@ -152,6 +156,21 @@ function CalendarPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
   const routines = routineByDate[selectedDate] ?? [false, false, false];
+  const labelDisplay = effectiveRoutineLabels(routineLabels);
+
+  const monthRoutineCounts = useMemo(() => {
+    const start = dayjs(monthCursor).startOf('month');
+    const daysInMonth = start.daysInMonth();
+    const counts = [0, 0, 0];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = start.date(d).format('YYYY-MM-DD');
+      const r = routineByDate[key] ?? [false, false, false];
+      for (let i = 0; i < 3; i++) {
+        if (r[i]) counts[i] += 1;
+      }
+    }
+    return { counts, daysInMonth };
+  }, [monthCursor, routineByDate]);
 
   const onFiles = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -171,43 +190,81 @@ function CalendarPage() {
   }, []);
 
   return (
-    <div className="page">
-      <section className="calendar-toolbar-row" aria-label="사진 추가 및 루틴">
-        <div className="upload-card">
-          <div>
+    <div className="page page--calendar">
+      <div className="calendar-page-layout">
+        <div className="calendar-main-col">
+          <CalendarView />
+        </div>
+        <aside className="calendar-sidebar" aria-label="선택 날짜·업로드·루틴">
+          <div className="calendar-sidebar-card calendar-sidebar-datecard">
+            <span className="calendar-sidebar-date-label">선택한 날</span>
+            <time className="calendar-sidebar-date-main" dateTime={selectedDate}>
+              {dayjs(selectedDate).locale('ko').format('M월 D일 ddd')}
+            </time>
+            <span className="calendar-sidebar-date-sub">
+              {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
+            </span>
+          </div>
+
+          <div className="calendar-sidebar-card calendar-sidebar-upload">
             <strong>사진 추가</strong>
-            <small>업로드 또는 Ctrl+V 붙여넣기</small>
+            <small>Ctrl+V 붙여넣기</small>
+            <button type="button" className="calendar-sidebar-upload-btn" onClick={() => fileInputRef.current?.click()}>
+              이미지 선택
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                onFiles(e.target.files);
+                e.currentTarget.value = '';
+              }}
+            />
           </div>
-          <button type="button" onClick={() => fileInputRef.current?.click()}>
-            이미지 선택
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              onFiles(e.target.files);
-              e.currentTarget.value = '';
-            }}
-          />
-        </div>
-        <div className="routine-control routine-control--inline">
-          <span className="routine-inline-label">루틴</span>
-          <div className="row routine-inline-btns">
-            {effectiveRoutineLabels(routineLabels).map((label, idx) => (
-              <button
-                key={`${idx}-${label}`}
-                type="button"
-                className={routines[idx] ? `routine-btn active dot-${idx + 1}` : `routine-btn dot-${idx + 1}`}
-                onClick={() => toggleRoutine(selectedDate, idx)}
-              >
-                {label}
-              </button>
-            ))}
+
+          <div className="calendar-sidebar-card calendar-sidebar-routine">
+            <span className="calendar-sidebar-section-title">이 날 루틴</span>
+            <div className="calendar-sidebar-routine-btns">
+              {labelDisplay.map((label, idx) => (
+                <button
+                  key={`${idx}-${label}`}
+                  type="button"
+                  className={routines[idx] ? `routine-btn active dot-${idx + 1}` : `routine-btn dot-${idx + 1}`}
+                  onClick={() => toggleRoutine(selectedDate, idx)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
-      <CalendarView />
+
+          <div className="calendar-sidebar-card calendar-sidebar-stats">
+            <span className="calendar-sidebar-section-title">
+              {dayjs(monthCursor).locale('ko').format('M월')} 루틴
+            </span>
+            <p className="calendar-sidebar-stats-hint">이번 달 완료한 날 수</p>
+            <ul className="calendar-sidebar-stats-list">
+              {labelDisplay.map((label, idx) => {
+                const n = monthRoutineCounts.counts[idx];
+                const max = monthRoutineCounts.daysInMonth;
+                const pct = max ? Math.round((n / max) * 100) : 0;
+                return (
+                  <li key={label} className="calendar-sidebar-stat-row">
+                    <span className={`calendar-sidebar-stat-name dot-${idx + 1}`}>{label}</span>
+                    <span className="calendar-sidebar-stat-count">
+                      {n}/{max}일
+                    </span>
+                    <span className="calendar-sidebar-stat-bar" aria-hidden>
+                      <span className="calendar-sidebar-stat-bar-fill" style={{ width: `${pct}%` }} />
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </aside>
+      </div>
       <section className="selected-images">
         <h3>{selectedDate} 사진</h3>
         <div className="selected-grid">
