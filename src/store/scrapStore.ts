@@ -14,6 +14,7 @@ interface ScrapState {
   setSelectedDate: (date: DateKey) => void;
   addImage: (date: DateKey, dataUrl: string) => void;
   removeImage: (date: DateKey, imageId: string) => void;
+  moveImage: (date: DateKey, fromIndex: number, toIndex: number) => void;
   setDiary: (date: DateKey, text: string) => void;
   loadSnapshot: (snapshot: PersistedSnapshot) => void;
   toSnapshot: () => PersistedSnapshot;
@@ -44,6 +45,22 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
     set((state) => {
       const filtered = (state.imagesByDate[date] ?? []).filter((img) => img.id !== imageId);
       return { imagesByDate: { ...state.imagesByDate, [date]: filtered } };
+    }),
+  moveImage: (date, fromIndex, toIndex) =>
+    set((state) => {
+      const list = [...(state.imagesByDate[date] ?? [])];
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= list.length ||
+        toIndex >= list.length ||
+        fromIndex === toIndex
+      ) {
+        return state;
+      }
+      const [picked] = list.splice(fromIndex, 1);
+      list.splice(toIndex, 0, { ...picked, updatedAt: Date.now() });
+      return { imagesByDate: { ...state.imagesByDate, [date]: list } };
     }),
   setDiary: (date, text) =>
     set((state) => ({

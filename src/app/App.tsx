@@ -109,6 +109,7 @@ function CalendarPage() {
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
   const addImage = useScrapStore((s) => s.addImage);
   const removeImage = useScrapStore((s) => s.removeImage);
+  const moveImage = useScrapStore((s) => s.moveImage);
   const [pending, setPending] = useState<string | null>(null);
   const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
 
@@ -142,10 +143,27 @@ function CalendarPage() {
       <section className="selected-images">
         <h3>{selectedDate} 사진</h3>
         <div className="selected-grid">
-          {images.map((img) => (
+          {images.map((img, index) => (
             <article key={img.id} className="image-card">
               <img src={img.dataUrl} alt="" className="stamp-clip" />
-              <button onClick={() => removeImage(selectedDate, img.id)}>삭제</button>
+              <div className="image-card-actions">
+                <button onClick={() => removeImage(selectedDate, img.id)}>삭제</button>
+                <button
+                  disabled={index === 0}
+                  onClick={() => moveImage(selectedDate, index, index - 1)}
+                >
+                  앞으로
+                </button>
+                <button
+                  disabled={index === images.length - 1}
+                  onClick={() => moveImage(selectedDate, index, index + 1)}
+                >
+                  뒤로
+                </button>
+                <button disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
+                  대표로
+                </button>
+              </div>
             </article>
           ))}
         </div>
