@@ -1187,6 +1187,17 @@ a {
   box-sizing: border-box;
 }
 
+/* 게스트: 입력창 대신 본문만 */
+.image-title-guest {
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #4b3217;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
 .image-card-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1759,6 +1770,12 @@ button:hover {
     font-size: 11px;
     padding: 4px 6px;
     margin-top: 4px;
+  }
+
+  .calendar-sidebar-selected .image-title-guest {
+    font-size: 11px;
+    margin-top: 4px;
+    line-height: 1.4;
   }
 
   .calendar-sidebar-selected .image-card-actions {

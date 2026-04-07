@@ -183,14 +183,19 @@ export function CalendarSidebar() {
                 }}
               >
                 <img src={img.dataUrl} alt="" />
-                <textarea
-                  className="image-title-input"
-                  value={img.title ?? ''}
-                  readOnly={readOnly}
-                  rows={2}
-                  onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
-                  placeholder="사진 밑 글 (Enter로 줄 바꿈)"
-                />
+                {readOnly ? (
+                  img.title?.trim() ? (
+                    <p className="image-title-guest">{img.title}</p>
+                  ) : null
+                ) : (
+                  <textarea
+                    className="image-title-input"
+                    value={img.title ?? ''}
+                    rows={2}
+                    onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
+                    placeholder="사진 밑 글 (Enter로 줄 바꿈)"
+                  />
+                )}
                 {!readOnly ? (
                   <div className="image-card-actions">
                     <button type="button" onClick={() => removeImage(selectedDate, img.id)}>
