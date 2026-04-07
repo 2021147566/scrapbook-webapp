@@ -59,7 +59,7 @@ function formatAccountLabel(user: User): string {
 
 /** 상단 고정 제목 */
 function headerTitle(): string {
-  return isFirebaseConfigured() ? '일기' : '스크랩북';
+  return isFirebaseConfigured() ? '의서의 일기' : '스크랩북';
 }
 
 function emptyPersistedSnapshot(): PersistedSnapshot {
@@ -315,18 +315,15 @@ function Header() {
     <header className="topbar">
       <div className="topbar-row">
         <div className="topbar-month row">
-          <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(-1)}>
+          <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(-1)} aria-label="이전 달">
             ◀
           </button>
-          <strong>{dayjs(monthCursor).locale('en').format('YYYY MMMM')}</strong>
-          <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(1)}>
+          <strong>{dayjs(monthCursor).locale('ko').format('YYYY년 M월')}</strong>
+          <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(1)} aria-label="다음 달">
             ▶
           </button>
         </div>
         <div className="topbar-meta">
-          <span className="topbar-today" title={dayjs().format('YYYY-MM-DD')}>
-            오늘 {dayjs().locale('ko').format('M/D ddd')}
-          </span>
           <nav className="topbar-links row" aria-label="화면 전환">
             <Link className={location.pathname === '/calendar' ? 'active' : ''} to="/calendar">
               달력

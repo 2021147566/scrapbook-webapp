@@ -176,23 +176,8 @@ export function CalendarMobileMonthScroller() {
     el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }, [selectedDate, monthCursor]);
 
-  const goToday = () => {
-    const t = dayjs();
-    void (async () => {
-      await goToMonthShard(t.toDate());
-      setMonthCursor(t.startOf('month').toDate());
-      setSelectedDate(t.format('YYYY-MM-DD'));
-    })();
-  };
-
   return (
     <div className="mobile-month-calendar-wrap">
-      <div className="mobile-month-calendar-head">
-        <span className="mobile-month-calendar-title">{dayjs(monthCursor).locale('ko').format('M월 YYYY')}</span>
-        <button type="button" className="mobile-month-today-btn" onClick={goToday}>
-          오늘
-        </button>
-      </div>
       <div className="mobile-month-scroll hide-scrollbar" ref={scrollRef}>
         <div className="mobile-month-scroll-inner">
           {monthDays.map((day) => {
@@ -219,29 +204,30 @@ export function CalendarMobileMonthScroller() {
               >
                 <div className="mobile-strip-toprow">
                   <span className="mobile-strip-date">{day.format('M/D')}</span>
-                  <span className="routine-dots routine-dots--mobile-strip">
-                    {routines.map((done, i) => (
-                      <span
-                        key={`${key}-${i}`}
-                        className={clsx('routine-dot', `dot-${i + 1}`, { done })}
-                        role="button"
-                        tabIndex={0}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (!readOnly) toggleRoutine(key, i);
-                        }}
-                        onKeyDown={(event) => {
-                          if (readOnly) return;
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
+                  {!readOnly ? (
+                    <span className="routine-dots routine-dots--mobile-strip">
+                      {routines.map((done, i) => (
+                        <span
+                          key={`${key}-${i}`}
+                          className={clsx('routine-dot', `dot-${i + 1}`, { done })}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(event) => {
                             event.stopPropagation();
                             toggleRoutine(key, i);
-                          }
-                        }}
-                        aria-label={`${key} ${routineNames[i]} 토글`}
-                      />
-                    ))}
-                  </span>
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              toggleRoutine(key, i);
+                            }
+                          }}
+                          aria-label={`${key} ${routineNames[i]} 토글`}
+                        />
+                      ))}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="stack-preview">
                   {items.length > 0 ? (

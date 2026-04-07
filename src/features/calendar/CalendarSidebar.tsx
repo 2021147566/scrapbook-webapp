@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CropModal } from '../crop/CropModal';
 import { useReadOnly } from '../../context/ReadOnlyContext';
 import { useFirebaseAuthUser } from '../../hooks/useFirebaseAuthUser';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { isFirebaseConfigured } from '../../lib/sync/firebaseSync';
 import { readFileAsDataUrl } from '../../lib/readFile';
 import { useScrapStore } from '../../store/scrapStore';
@@ -11,8 +12,12 @@ import { effectiveRoutineLabels } from '../../types';
 
 const EMPTY_IMAGES: ScrapImage[] = [];
 
+const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
+
 export function CalendarSidebar() {
   const readOnly = useReadOnly();
+  const isMobileCalendar = useMediaQuery(MOBILE_CALENDAR_MEDIA);
+  const hideRoutineForGuestMobile = readOnly && isMobileCalendar;
   const authUser = useFirebaseAuthUser();
   const showPhotoAdd = !isFirebaseConfigured() || authUser != null;
   const monthCursor = useScrapStore((s) => s.monthCursor);
@@ -104,53 +109,57 @@ export function CalendarSidebar() {
           </div>
         ) : null}
 
-        <div className="calendar-sidebar-card calendar-sidebar-routine">
-          <span className="calendar-sidebar-section-title">이 날 루틴</span>
-          <div className="calendar-sidebar-routine-btns">
-            {labelDisplay.map((label, idx) => (
-              <button
-                key={`${idx}-${label}`}
-                type="button"
-                className={
-                  routines[idx]
-                    ? `routine-btn routine-btn--sidebar active dot-${idx + 1}`
-                    : `routine-btn routine-btn--sidebar dot-${idx + 1}`
-                }
-                disabled={readOnly}
-                onClick={() => {
-                  if (!readOnly) toggleRoutine(selectedDate, idx);
-                }}
-              >
-                {label}
-              </button>
-            ))}
+        {!hideRoutineForGuestMobile ? (
+          <div className="calendar-sidebar-card calendar-sidebar-routine">
+            <span className="calendar-sidebar-section-title">이 날 루틴</span>
+            <div className="calendar-sidebar-routine-btns">
+              {labelDisplay.map((label, idx) => (
+                <button
+                  key={`${idx}-${label}`}
+                  type="button"
+                  className={
+                    routines[idx]
+                      ? `routine-btn routine-btn--sidebar active dot-${idx + 1}`
+                      : `routine-btn routine-btn--sidebar dot-${idx + 1}`
+                  }
+                  disabled={readOnly}
+                  onClick={() => {
+                    if (!readOnly) toggleRoutine(selectedDate, idx);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="calendar-sidebar-card calendar-sidebar-stats">
-          <span className="calendar-sidebar-section-title">
-            {dayjs(monthCursor).locale('ko').format('M월')} 루틴
-          </span>
-          <p className="calendar-sidebar-stats-hint">이번 달 완료한 날 수</p>
-          <ul className="calendar-sidebar-stats-list">
-            {labelDisplay.map((label, idx) => {
-              const n = monthRoutineCounts.counts[idx];
-              const max = monthRoutineCounts.daysInMonth;
-              const pct = max ? Math.round((n / max) * 100) : 0;
-              return (
-                <li key={label} className="calendar-sidebar-stat-row">
-                  <span className={`calendar-sidebar-stat-name dot-${idx + 1}`}>{label}</span>
-                  <span className="calendar-sidebar-stat-count">
-                    {n}/{max}일
-                  </span>
-                  <span className="calendar-sidebar-stat-bar" aria-hidden>
-                    <span className="calendar-sidebar-stat-bar-fill" style={{ width: `${pct}%` }} />
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        {!hideRoutineForGuestMobile ? (
+          <div className="calendar-sidebar-card calendar-sidebar-stats">
+            <span className="calendar-sidebar-section-title">
+              {dayjs(monthCursor).locale('ko').format('M월')} 루틴
+            </span>
+            <p className="calendar-sidebar-stats-hint">이번 달 완료한 날 수</p>
+            <ul className="calendar-sidebar-stats-list">
+              {labelDisplay.map((label, idx) => {
+                const n = monthRoutineCounts.counts[idx];
+                const max = monthRoutineCounts.daysInMonth;
+                const pct = max ? Math.round((n / max) * 100) : 0;
+                return (
+                  <li key={label} className="calendar-sidebar-stat-row">
+                    <span className={`calendar-sidebar-stat-name dot-${idx + 1}`}>{label}</span>
+                    <span className="calendar-sidebar-stat-count">
+                      {n}/{max}일
+                    </span>
+                    <span className="calendar-sidebar-stat-bar" aria-hidden>
+                      <span className="calendar-sidebar-stat-bar-fill" style={{ width: `${pct}%` }} />
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
 
         <div className="calendar-sidebar-card calendar-sidebar-selected">
           <h3 className="calendar-sidebar-section-title">이 날 사진</h3>

@@ -56,9 +56,9 @@ a {
 .topbar {
   background: linear-gradient(165deg, #f4ead7 0%, #e6d3b0 100%);
   border: 1px solid #ccb08a;
-  border-radius: 14px;
-  padding: 14px 18px;
-  box-shadow: 0 8px 24px rgba(73, 48, 22, 0.14);
+  border-radius: 10px;
+  padding: 6px 12px;
+  box-shadow: 0 4px 14px rgba(73, 48, 22, 0.1);
 }
 
 .topbar-row {
@@ -66,14 +66,23 @@ a {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 16px;
+  gap: 6px 10px;
 }
 
 .topbar-month strong {
-  min-width: 10.5ch;
+  min-width: 8.5ch;
   text-align: center;
   color: #4b3217;
-  font-size: 1.05rem;
+  font-size: 0.875rem;
+}
+
+.topbar .topbar-month button {
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  min-height: 0;
+  line-height: 1.2;
+  box-shadow: 0 1px 0 rgba(95, 66, 32, 0.15);
 }
 
 .topbar-meta {
@@ -81,18 +90,7 @@ a {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px 16px;
-}
-
-.topbar-today {
-  font-size: 13px;
-  color: #5c4a32;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid #c4b49a;
-  background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
-  white-space: nowrap;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  gap: 6px 10px;
 }
 
 .topbar-links {
@@ -100,25 +98,18 @@ a {
 }
 
 .topbar-links a {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
   color: #4b3217;
-  padding: 6px 10px;
-  border-radius: 8px;
-  min-height: 40px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  min-height: 30px;
   display: inline-flex;
   align-items: center;
 }
 
 .topbar-links a.active {
   color: #3d2912;
-}
-
-/* 좁은 화면: 달력 본문에 주간 뷰가 들어가므로 헤더 월 이동은 숨김 */
-@media (max-width: 960px) {
-  .topbar .topbar-month {
-    display: none;
-  }
 }
 
 .row {
@@ -397,9 +388,9 @@ a {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px 14px;
-  margin-top: 8px;
-  padding-top: 8px;
+  gap: 4px 10px;
+  margin-top: 4px;
+  padding-top: 4px;
   border-top: 1px solid rgba(107, 85, 56, 0.2);
   min-height: 0;
 }
@@ -416,8 +407,8 @@ a {
 .topbar-guest-title {
   font-weight: 700;
   color: #4b3217;
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.3;
   word-break: break-word;
   flex: 1 1 auto;
   min-width: 0;
@@ -450,14 +441,14 @@ a {
 }
 
 .topbar-guest-cta {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #5b3d1e;
-  padding: 8px 14px;
+  padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid #c4b49a;
   background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
-  min-height: 40px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
 }
@@ -624,32 +615,6 @@ a {
 .mobile-month-calendar-wrap {
   flex-shrink: 0;
   padding: 0 8px 8px;
-}
-
-.mobile-month-calendar-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  padding: 0 4px;
-}
-
-.mobile-month-calendar-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #4b3217;
-}
-
-.mobile-month-today-btn {
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid #c4b49a;
-  background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
-  color: #4b3217;
-  cursor: pointer;
-  white-space: nowrap;
 }
 
 .mobile-month-scroll {
@@ -1983,12 +1948,12 @@ button:hover {
   }
 
   .topbar {
-    padding: 12px 14px;
+    padding: 6px 10px;
   }
 
   .topbar-links a {
-    min-height: 44px;
-    padding: 8px 12px;
+    min-height: 36px;
+    padding: 4px 10px;
   }
 
   .page,
