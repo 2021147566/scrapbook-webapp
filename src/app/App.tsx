@@ -17,6 +17,7 @@ import {
 } from '../lib/sync/firebaseSync';
 import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot, ScrapImage } from '../types';
+import { effectiveRoutineLabels, normalizeRoutineLabels } from '../types';
 
 const EMPTY_IMAGES: ScrapImage[] = [];
 
@@ -48,11 +49,22 @@ function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): Per
     ];
   }
 
+  const hasCloudLabels = Array.isArray(cloud.routineLabels) && cloud.routineLabels.length === 3;
+  const hasLocalLabels = Array.isArray(local.routineLabels) && local.routineLabels.length === 3;
+  const routineLabels = !hasCloudLabels
+    ? normalizeRoutineLabels(local.routineLabels)
+    : !hasLocalLabels
+      ? normalizeRoutineLabels(cloud.routineLabels)
+      : (cloud.updatedAt ?? 0) >= (local.updatedAt ?? 0)
+        ? normalizeRoutineLabels(cloud.routineLabels)
+        : normalizeRoutineLabels(local.routineLabels);
+
   return {
     updatedAt: Math.max(local.updatedAt ?? 0, cloud.updatedAt ?? 0, Date.now()),
     imagesByDate,
     diaryByDate,
     routineByDate,
+    routineLabels: [...routineLabels],
   };
 }
 
@@ -134,6 +146,7 @@ function CalendarPage() {
   const moveImage = useScrapStore((s) => s.moveImage);
   const setImageTitle = useScrapStore((s) => s.setImageTitle);
   const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
+  const routineLabels = useScrapStore((s) => s.routineLabels);
   const [pending, setPending] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -181,9 +194,9 @@ function CalendarPage() {
         <div className="routine-control routine-control--inline">
           <span className="routine-inline-label">루틴</span>
           <div className="row routine-inline-btns">
-            {['운동', '공부', '식단'].map((label, idx) => (
+            {effectiveRoutineLabels(routineLabels).map((label, idx) => (
               <button
-                key={label}
+                key={`${idx}-${label}`}
                 type="button"
                 className={routines[idx] ? `routine-btn active dot-${idx + 1}` : `routine-btn dot-${idx + 1}`}
                 onClick={() => toggleRoutine(selectedDate, idx)}
@@ -246,6 +259,8 @@ function CalendarPage() {
 function SettingsPage() {
   const loadState = useScrapStore((s) => s.loadSnapshot);
   const toSnapshot = useScrapStore((s) => s.toSnapshot);
+  const routineLabels = useScrapStore((s) => s.routineLabels);
+  const setRoutineLabels = useScrapStore((s) => s.setRoutineLabels);
   const [status, setStatus] = useState('로컬 모드');
   const hasFirebase = useMemo(() => isFirebaseConfigured(), []);
   const [autoSync, setAutoSync] = useState(false);
@@ -282,6 +297,25 @@ function SettingsPage() {
 
   return (
     <section className="settings">
+      <h3>루틴 이름 (3개 고정)</h3>
+      <p className="settings-hint">달력에서 점·버튼에 쓰이는 이름입니다. 비우면 기본값으로 돌아갑니다.</p>
+      <div className="settings-routine-grid">
+        {routineLabels.map((label, idx) => (
+          <label key={idx} className="settings-routine-field">
+            <span>루틴 {idx + 1}</span>
+            <input
+              type="text"
+              value={label}
+              maxLength={20}
+              onChange={(e) => {
+                const next: [string, string, string] = [...routineLabels] as [string, string, string];
+                next[idx] = e.target.value;
+                setRoutineLabels(next);
+              }}
+            />
+          </label>
+        ))}
+      </div>
       <h3>데이터</h3>
       <div className="row">
         <button onClick={downloadBackup}>백업 내보내기</button>

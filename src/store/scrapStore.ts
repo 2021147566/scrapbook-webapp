@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { DateKey, DiaryEntry, PersistedSnapshot, ScrapImage } from '../types';
+import { DEFAULT_ROUTINE_LABELS, effectiveRoutineLabels, normalizeRoutineLabels } from '../types';
 
 function dayKey(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -11,6 +12,7 @@ interface ScrapState {
   imagesByDate: Record<DateKey, ScrapImage[]>;
   diaryByDate: Record<DateKey, DiaryEntry>;
   routineByDate: Record<DateKey, boolean[]>;
+  routineLabels: [string, string, string];
   setMonthCursor: (date: Date) => void;
   setSelectedDate: (date: DateKey) => void;
   addImage: (date: DateKey, dataUrl: string) => void;
@@ -18,6 +20,7 @@ interface ScrapState {
   moveImage: (date: DateKey, fromIndex: number, toIndex: number) => void;
   setImageTitle: (date: DateKey, imageId: string, title: string) => void;
   toggleRoutine: (date: DateKey, routineIndex: number) => void;
+  setRoutineLabels: (labels: [string, string, string]) => void;
   setDiary: (date: DateKey, text: string) => void;
   loadSnapshot: (snapshot: PersistedSnapshot) => void;
   toSnapshot: () => PersistedSnapshot;
@@ -31,6 +34,7 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
   imagesByDate: {},
   diaryByDate: {},
   routineByDate: {},
+  routineLabels: [...DEFAULT_ROUTINE_LABELS],
   setMonthCursor: (date) => set({ monthCursor: date }),
   setSelectedDate: (date) => set({ selectedDate: date }),
   addImage: (date, dataUrl) =>
@@ -80,6 +84,14 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
       next[routineIndex] = !next[routineIndex];
       return { routineByDate: { ...state.routineByDate, [date]: next } };
     }),
+  setRoutineLabels: (labels) =>
+    set(() => ({
+      routineLabels: [
+        String(labels[0] ?? '').slice(0, 20),
+        String(labels[1] ?? '').slice(0, 20),
+        String(labels[2] ?? '').slice(0, 20),
+      ] as [string, string, string],
+    })),
   setDiary: (date, text) =>
     set((state) => ({
       diaryByDate: {
@@ -92,6 +104,7 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
       imagesByDate: snapshot.imagesByDate ?? {},
       diaryByDate: snapshot.diaryByDate ?? {},
       routineByDate: snapshot.routineByDate ?? {},
+      routineLabels: normalizeRoutineLabels(snapshot.routineLabels),
     }),
   toSnapshot: () => {
     const state = get();
@@ -100,6 +113,7 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
       imagesByDate: state.imagesByDate,
       diaryByDate: state.diaryByDate,
       routineByDate: state.routineByDate,
+      routineLabels: [...effectiveRoutineLabels(state.routineLabels)],
     };
   },
 }));

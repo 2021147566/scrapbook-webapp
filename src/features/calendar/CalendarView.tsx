@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { useMemo } from 'react';
 import clsx from 'clsx';
 import { useScrapStore } from '../../store/scrapStore';
+import { effectiveRoutineLabels } from '../../types';
 
 function buildMonthDays(cursor: Date): dayjs.Dayjs[] {
   const start = dayjs(cursor).startOf('month');
@@ -13,6 +14,8 @@ export function CalendarView() {
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
   const routineByDate = useScrapStore((s) => s.routineByDate);
+  const routineLabels = useScrapStore((s) => s.routineLabels);
+  const routineNames = useMemo(() => effectiveRoutineLabels(routineLabels), [routineLabels]);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
   const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
   const monthDays = useMemo(() => buildMonthDays(monthCursor), [monthCursor]);
@@ -44,7 +47,7 @@ export function CalendarView() {
           >
             <div className="day-header">
               <span className="day-number">{day.date()}</span>
-              <span className="routine-dots" aria-hidden>
+              <span className="routine-dots">
                 {routines.map((done, i) => (
                   <span
                     key={`${key}-${i}`}
@@ -62,7 +65,7 @@ export function CalendarView() {
                         toggleRoutine(key, i);
                       }
                     }}
-                    aria-label={`${key} 루틴 ${i + 1} 토글`}
+                    aria-label={`${key} ${routineNames[i]} 토글`}
                   />
                 ))}
               </span>
