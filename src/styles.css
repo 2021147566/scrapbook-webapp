@@ -462,6 +462,11 @@ a {
   align-items: center;
 }
 
+.topbar-guest-cta--inline {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .topbar-guest-logged {
   font-size: 13px;
   color: #5c4a32;

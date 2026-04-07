@@ -24,7 +24,7 @@ import { GUEST_DEFAULT_DIARY_TITLE } from '../config/guest';
 import { ReadOnlyProvider, useReadOnly } from '../context/ReadOnlyContext';
 import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot, ScrapImage } from '../types';
-import { normalizeRoutineLabels } from '../types';
+import { DEFAULT_ROUTINE_LABELS, normalizeRoutineLabels } from '../types';
 
 /** 달력 그리드·사이드바와 동일 기준 (styles.css) */
 const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
@@ -90,18 +90,32 @@ function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): Per
   };
 }
 
-/** 로그인 시: 표시이름(없으면 @앞) (전체 이메일) */
+/** 로그인 시: 표시이름(없으면 @앞) (전체 이메일) — 설정 등 */
 function formatAccountLabel(user: User): string {
   const email = user.email ?? '';
   const primary = user.displayName?.trim() || email.split('@')[0]?.trim() || '사용자';
   return email ? `${primary} (${email})` : primary;
 }
 
-/** 상단 제목: 로그인 / 비로그인+Firebase(기본 일기) / 로컬만 */
+/** 상단 제목: 로그인 시 "○○의 일기" / 비로그인+Firebase는 의서 기본 / 로컬만 */
 function headerDiaryTitle(authUser: User | null): string {
-  if (authUser) return formatAccountLabel(authUser);
+  if (authUser) {
+    const email = authUser.email ?? '';
+    const name = authUser.displayName?.trim() || email.split('@')[0]?.trim() || '사용자';
+    return `${name}의 일기`;
+  }
   if (isFirebaseConfigured()) return GUEST_DEFAULT_DIARY_TITLE;
   return '스크랩북';
+}
+
+function emptyPersistedSnapshot(): PersistedSnapshot {
+  return {
+    updatedAt: Date.now(),
+    imagesByDate: {},
+    diaryByDate: {},
+    routineByDate: {},
+    routineLabels: [...DEFAULT_ROUTINE_LABELS],
+  };
 }
 
 function useFirebaseAuthUser(): User | null {
@@ -146,6 +160,36 @@ function usePersistState() {
     }, 1500);
     return () => clearInterval(t);
   }, [toSnapshot]);
+}
+
+/** 로그아웃 시 로컬·IndexedDB에 남은 내용과 섞이지 않게 게스트 스냅샷만 다시 로드 */
+function useGuestReloadOnLogout() {
+  const loadState = useScrapStore((s) => s.loadSnapshot);
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+    let firstAuth = true;
+    let prevUser: User | null = null;
+    return watchAuthState((user) => {
+      if (firstAuth) {
+        firstAuth = false;
+        prevUser = user;
+        return;
+      }
+      const wasLoggedIn = prevUser !== null;
+      prevUser = user;
+      if (!wasLoggedIn || user !== null) return;
+      if (!canLoadGuestDefault()) return;
+      (async () => {
+        try {
+          const guest = await fetchGuestDefaultSnapshot();
+          if (!guest) return;
+          loadState(mergeSnapshots(emptyPersistedSnapshot(), guest));
+        } catch (e) {
+          console.warn('로그아웃 후 게스트 일기 복원 실패', e);
+        }
+      })();
+    });
+  }, [loadState]);
 }
 
 function Header() {
@@ -200,13 +244,12 @@ function Header() {
             <button type="button" className="topbar-logout-link" onClick={onLogoutClick}>
               로그아웃
             </button>
+          ) : !authUser && hasFirebase ? (
+            <Link className="topbar-guest-cta topbar-guest-cta--inline" to="/settings">
+              나도 일기 쓰기
+            </Link>
           ) : null}
         </div>
-        {!authUser && hasFirebase ? (
-          <Link className="topbar-guest-cta" to="/settings">
-            나도 일기 쓰기
-          </Link>
-        ) : null}
       </div>
     </header>
   );
@@ -491,6 +534,7 @@ function AppShell() {
 
 export function App() {
   usePersistState();
+  useGuestReloadOnLogout();
 
   return (
     <div className="app">

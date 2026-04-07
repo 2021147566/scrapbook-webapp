@@ -11,8 +11,16 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
 import { parsePersistedSnapshot } from '../storage/indexeddb';
+import { GUEST_DEFAULT_UID_FALLBACK } from '../../config/guest';
 import { getStorage, ref, uploadString } from 'firebase/storage';
 import type { PersistedSnapshot } from '../../types';
+
+function guestDefaultUid(): string | undefined {
+  const fromEnv = import.meta.env.VITE_GUEST_DEFAULT_UID?.trim();
+  if (fromEnv) return fromEnv;
+  const fb = GUEST_DEFAULT_UID_FALLBACK?.trim();
+  return fb || undefined;
+}
 
 let firebaseReady = false;
 let authUser: User | null = null;
@@ -123,10 +131,7 @@ export async function resolveInitialAuth(): Promise<User | null> {
 
 /** 비로그인 기본 일기: 공개 URL 또는 Firestore 공개 읽기 UID 중 하나 필요 */
 export function canLoadGuestDefault(): boolean {
-  return Boolean(
-    import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim() ||
-      import.meta.env.VITE_GUEST_DEFAULT_UID?.trim(),
-  );
+  return Boolean(import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim() || guestDefaultUid());
 }
 
 export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | null> {
@@ -141,7 +146,7 @@ export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | n
       return null;
     }
   }
-  const uid = import.meta.env.VITE_GUEST_DEFAULT_UID?.trim();
+  const uid = guestDefaultUid();
   if (!uid) return null;
   try {
     ensureFirebase();
