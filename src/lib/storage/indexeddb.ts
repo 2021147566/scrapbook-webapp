@@ -1,4 +1,5 @@
 import { openDB } from 'idb';
+import { compressSnapshotImages } from '../imageCompress';
 import type { PersistedSnapshot } from '../../types';
 
 const DB_NAME = 'scrapbook-db';
@@ -43,6 +44,7 @@ export function parsePersistedSnapshot(text: string): PersistedSnapshot {
 
 export async function importSnapshot(text: string): Promise<PersistedSnapshot> {
   const parsed = parsePersistedSnapshot(text);
-  await saveSnapshot(parsed);
-  return parsed;
+  const compressed = await compressSnapshotImages(parsed);
+  await saveSnapshot(compressed);
+  return compressed;
 }

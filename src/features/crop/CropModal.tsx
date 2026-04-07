@@ -33,7 +33,8 @@ async function createCroppedImage(src: string, pixelCrop: Area): Promise<string>
     TARGET_WIDTH,
     TARGET_HEIGHT,
   );
-  return canvas.toDataURL('image/jpeg', 0.92);
+  // 800px 표시용 — 0.88 정도면 육안 차이 거의 없이 용량만 줄어듦
+  return canvas.toDataURL('image/jpeg', 0.88);
 }
 
 export function CropModal({ src, onClose, onSave }: CropModalProps) {
