@@ -1,0 +1,36 @@
+import { openDB } from 'idb';
+import type { PersistedSnapshot } from '../../types';
+
+const DB_NAME = 'scrapbook-db';
+const STORE_NAME = 'state';
+const SNAPSHOT_KEY = 'snapshot';
+
+async function db() {
+  return openDB(DB_NAME, 1, {
+    upgrade(database) {
+      if (!database.objectStoreNames.contains(STORE_NAME)) {
+        database.createObjectStore(STORE_NAME);
+      }
+    },
+  });
+}
+
+export async function saveSnapshot(snapshot: PersistedSnapshot): Promise<void> {
+  const database = await db();
+  await database.put(STORE_NAME, snapshot, SNAPSHOT_KEY);
+}
+
+export async function loadSnapshot(): Promise<PersistedSnapshot | null> {
+  const database = await db();
+  return (await database.get(STORE_NAME, SNAPSHOT_KEY)) ?? null;
+}
+
+export async function exportSnapshot(snapshot: PersistedSnapshot): Promise<string> {
+  return JSON.stringify(snapshot, null, 2);
+}
+
+export async function importSnapshot(text: string): Promise<PersistedSnapshot> {
+  const parsed = JSON.parse(text) as PersistedSnapshot;
+  await saveSnapshot(parsed);
+  return parsed;
+}
