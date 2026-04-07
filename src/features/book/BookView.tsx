@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { useScrapStore } from '../../store/scrapStore';
 import { DiaryPanel } from '../diary/DiaryPanel';
+import { BookFilmCollage } from './BookFilmCollage';
 
 export function BookView() {
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
@@ -13,7 +14,6 @@ export function BookView() {
   const safeIndex = Math.min(index, Math.max(dates.length - 1, 0));
   const currentDate = dates[safeIndex];
   const currentImages = currentDate ? imagesByDate[currentDate] ?? [] : [];
-  const currentImage = currentImages[0] ?? null;
 
   return (
     <div className="book-layout">
@@ -26,30 +26,10 @@ export function BookView() {
                 {safeIndex + 1}/{dates.length}
               </p>
             </header>
-            {currentImage ? (
+            {currentImages.length > 0 ? (
               <div className="book-photo-stage">
-                <div className="photo-stack">
-                  {currentImages.length > 2 ? (
-                    <img
-                      src={currentImages[2].dataUrl}
-                      alt=""
-                      className="stack-image-back layer-far"
-                      aria-hidden
-                    />
-                  ) : null}
-                  {currentImages.length > 1 ? (
-                    <img
-                      src={currentImages[1].dataUrl}
-                      alt=""
-                      className="stack-image-back layer-mid"
-                      aria-hidden
-                    />
-                  ) : null}
-                  <img src={currentImage.dataUrl} alt="" className="book-image" />
-                </div>
-                {currentImages.length > 1 ? (
-                  <small className="book-count">이 날의 사진 {currentImages.length}장</small>
-                ) : null}
+                <BookFilmCollage images={currentImages} />
+                <small className="book-count">이 날의 사진 {currentImages.length}장</small>
               </div>
             ) : (
               <p>이미지 없음</p>

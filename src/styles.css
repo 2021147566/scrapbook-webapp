@@ -280,34 +280,160 @@ a {
   padding: 16px;
 }
 
-.book-image {
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  top: 0;
-  bottom: 0;
-  width: calc(100% - 8px);
-  height: 100%;
-  aspect-ratio: 4 / 5;
-  object-fit: cover;
-  margin: 0;
-  z-index: 3;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
-}
-
 .book-photo-stage {
   margin: 8px 0;
 }
 
-.book-photo-stage .photo-stack {
-  width: min(100%, 420px);
-  aspect-ratio: 4 / 5;
-  min-height: 360px;
+.book-count {
+  display: block;
+  margin-top: 14px;
+  text-align: center;
+  color: #6b7280;
 }
 
-.book-count {
-  display: inline-block;
+/* 필름 인화 프레임 + 책장에 사선으로 붙인 느낌 */
+.book-film-stage {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.film-frame {
+  background: linear-gradient(165deg, #faf8f3 0%, #ebe8e0 100%);
+  padding: 8px 14px 20px;
+  border-radius: 3px;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.22),
+    0 2px 6px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+  transform-origin: center center;
+}
+
+.film-frame-sprockets {
+  display: none;
+}
+
+.film-frame-mat {
+  background: #0c0c0c;
+  padding: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.film-frame-mat img {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+}
+
+/* 1장 */
+.book-film-stage--n1 {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.book-film-stage--n1 .film-frame {
+  position: relative;
+  transform: rotate(-4deg);
+}
+
+/* 2장: 사선 겹침 */
+.book-film-stage--n2 {
+  min-height: 340px;
+}
+
+.book-film-stage--n2 .film-frame {
+  position: absolute;
+  width: min(46%, 210px);
+}
+
+.book-film-stage--n2 .film-frame--slot-0 {
+  left: 4%;
+  top: 10%;
+  z-index: 2;
+  transform: rotate(-11deg);
+}
+
+.book-film-stage--n2 .film-frame--slot-1 {
+  right: 2%;
+  top: 18%;
+  z-index: 1;
+  transform: rotate(9deg);
+}
+
+/* 3장: 부채꼴 겹침 */
+.book-film-stage--n3 {
+  min-height: 420px;
+}
+
+.book-film-stage--n3 .film-frame {
+  position: absolute;
+  width: min(40%, 195px);
+}
+
+.book-film-stage--n3 .film-frame--slot-0 {
+  left: 2%;
+  top: 26%;
+  z-index: 1;
+  transform: rotate(-14deg);
+}
+
+.book-film-stage--n3 .film-frame--slot-1 {
+  left: 50%;
+  top: 4%;
+  z-index: 3;
+  transform: translateX(-50%) rotate(3deg);
+}
+
+.book-film-stage--n3 .film-frame--slot-2 {
+  right: 2%;
+  top: 28%;
+  z-index: 2;
+  transform: rotate(12deg);
+}
+
+/* 4장 이상: 작은 프레임으로 전부 노출 */
+.book-film-stage--many {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 12px 10px;
+  padding: 12px 0;
+  min-height: auto;
+}
+
+.book-film-stage--many .film-frame {
+  position: relative;
+  width: min(44%, 170px);
+  flex: 0 0 auto;
+}
+
+.book-film-stage--many .film-frame-mat img {
+  max-width: 100%;
+}
+
+.book-film-stage--many .film-frame:nth-child(4n + 1) {
+  transform: rotate(-6deg);
+}
+
+.book-film-stage--many .film-frame:nth-child(4n + 2) {
+  transform: rotate(5deg);
   margin-top: 8px;
+}
+
+.book-film-stage--many .film-frame:nth-child(4n + 3) {
+  transform: rotate(-4deg);
+}
+
+.book-film-stage--many .film-frame:nth-child(4n) {
+  transform: rotate(7deg);
+  margin-top: 6px;
 }
 
 .diary-panel textarea {
