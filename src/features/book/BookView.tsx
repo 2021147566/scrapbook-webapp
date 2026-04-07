@@ -56,61 +56,43 @@ export function BookView() {
       <div className="book-layout">
         <section className="book-page">
           <>
-            {isMobileLayout ? (
-              <header
-                className="book-page-header book-page-header--mobile-daynav"
-                aria-label={dayjs(selectedDate).locale('ko').format('YYYY년 M월 D일')}
-              >
-                <button
-                  type="button"
-                  className="book-daynav-btn"
-                  disabled={dayBusy}
-                  onClick={() => void goDay(-1)}
-                  aria-label="이전 날"
-                >
-                  ◀
-                </button>
-                <button
-                  type="button"
-                  className="book-daynav-btn"
-                  disabled={dayBusy}
-                  onClick={() => void goDay(1)}
-                  aria-label="다음 날"
-                >
-                  ▶
-                </button>
-              </header>
-            ) : (
+            {!isMobileLayout ? (
               <header className="book-page-header">
                 <h3>{dayjs(selectedDate).format('YYYY년 M월 D일')}</h3>
               </header>
-            )}
+            ) : null}
 
             {currentImages.length > 0 ? (
               isMobileLayout ? (
                 <div className="book-photo-stage book-photo-stage--mobile-flat">
-                  <div className="book-mobile-single">
-                    <div className="book-mobile-frame">
-                      <img src={currentImages[photoIdx].dataUrl} alt="" draggable={false} />
-                    </div>
-                    {currentImages[photoIdx].title ? (
-                      <div className="book-mobile-caption">{currentImages[photoIdx].title}</div>
-                    ) : null}
-                  </div>
-                  <div className="row book-toolbar book-toolbar--compact book-toolbar--photo-only">
+                  <div className="book-mobile-photo-row">
                     <button
                       type="button"
+                      className="book-photonav-btn"
                       disabled={n <= 1}
                       onClick={() => goPhoto(-1)}
                       aria-label="이전 사진"
                     >
                       ◀
                     </button>
-                    <span className="book-toolbar-meta" aria-live="polite">
-                      {photoIdx + 1} / {n}
-                    </span>
+                    <div className="book-mobile-single">
+                      <div className="book-mobile-frame">
+                        <div className="book-mobile-frame-photo">
+                          <img src={currentImages[photoIdx].dataUrl} alt="" draggable={false} />
+                        </div>
+                        <div
+                          className="book-mobile-frame-chin"
+                          aria-hidden={currentImages[photoIdx].title ? undefined : true}
+                        >
+                          {currentImages[photoIdx].title ? (
+                            <span className="book-mobile-caption">{currentImages[photoIdx].title}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
                     <button
                       type="button"
+                      className="book-photonav-btn"
                       disabled={n <= 1}
                       onClick={() => goPhoto(1)}
                       aria-label="다음 사진"
@@ -118,6 +100,11 @@ export function BookView() {
                       ▶
                     </button>
                   </div>
+                  {n > 1 ? (
+                    <p className="book-mobile-photo-index" aria-live="polite">
+                      {photoIdx + 1} / {n}
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <div className="book-photo-stage">
@@ -148,7 +135,18 @@ export function BookView() {
             ) : null}
           </>
         </section>
-        <DiaryPanel date={selectedDate} />
+        <DiaryPanel
+          date={selectedDate}
+          mobileBookDayNav={
+            isMobileLayout
+              ? {
+                  busy: dayBusy,
+                  onPrev: () => void goDay(-1),
+                  onNext: () => void goDay(1),
+                }
+              : undefined
+          }
+        />
       </div>
     </div>
   );
