@@ -20,7 +20,7 @@ import {
   resolveInitialAuth,
   watchAuthState,
 } from '../lib/sync/firebaseSync';
-import { GUEST_PUBLIC_OWNER_EMAIL } from '../config/guest';
+import { GUEST_DEFAULT_DIARY_TITLE } from '../config/guest';
 import { ReadOnlyProvider, useReadOnly } from '../context/ReadOnlyContext';
 import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot, ScrapImage } from '../types';
@@ -97,10 +97,10 @@ function formatAccountLabel(user: User): string {
   return email ? `${primary} (${email})` : primary;
 }
 
-/** 상단 제목: 로그인 / 비로그인+Firebase(게스트 소유 표시) / 로컬만 */
+/** 상단 제목: 로그인 / 비로그인+Firebase(기본 일기) / 로컬만 */
 function headerDiaryTitle(authUser: User | null): string {
   if (authUser) return formatAccountLabel(authUser);
-  if (isFirebaseConfigured()) return `${GUEST_PUBLIC_OWNER_EMAIL} 님의 일기`;
+  if (isFirebaseConfigured()) return GUEST_DEFAULT_DIARY_TITLE;
   return '스크랩북';
 }
 
@@ -153,7 +153,6 @@ function Header() {
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const location = useLocation();
   const authUser = useFirebaseAuthUser();
-  const readOnly = useReadOnly();
   const hasFirebase = isFirebaseConfigured();
 
   const onLogoutClick = async () => {
@@ -209,11 +208,6 @@ function Header() {
           </Link>
         ) : null}
       </div>
-      {readOnly ? (
-        <p className="topbar-readonly-notice" role="status">
-          보기 전용입니다. 수정·추가는 설정에서 로그인 후에만 가능해요.
-        </p>
-      ) : null}
     </header>
   );
 }
