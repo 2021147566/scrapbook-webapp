@@ -141,11 +141,12 @@ a {
   box-shadow: 0 10px 26px rgba(67, 45, 24, 0.1);
 }
 
+/* 데스크톱에서 좁은 카드(모바일 프레임 느낌) 방지 — 상위 .app 너비를 그대로 사용 */
 .settings {
-  max-width: 640px;
   width: 100%;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .settings h3 {
@@ -191,12 +192,6 @@ a {
   font-size: 15px;
   line-height: 1.55;
   color: #5b3d1e;
-}
-
-@media (min-width: 641px) {
-  .settings-login-lead {
-    max-width: 420px;
-  }
 }
 
 .settings-login-main-btn {
@@ -353,6 +348,50 @@ a {
   margin: 12px 0 0;
   font-size: 13px;
   color: #5c4a32;
+}
+
+/* 설정 — 넓은 화면: 카드 전체 너비 + 상단·왼쪽 정렬(가운데 좁은 띠 제거) */
+@media (min-width: 768px) {
+  .settings {
+    padding: 28px 40px 40px;
+  }
+
+  .settings--login-only {
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    min-height: auto;
+    padding: 36px 44px 48px;
+  }
+
+  .settings--login-only .settings-login-lead {
+    max-width: 40rem;
+    font-size: 17px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .settings--login-only .settings-google-login-btn {
+    align-self: flex-start !important;
+  }
+
+  .settings--login-only .settings-sync-note {
+    text-align: left;
+  }
+
+  .settings--login-only > .settings-hint {
+    text-align: left;
+    max-width: 40rem;
+  }
+
+  .settings-routine-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px 28px;
+  }
+
+  .settings h3 {
+    font-size: 1.28rem;
+  }
 }
 
 .page--readonly .routine-dot {
