@@ -32,17 +32,15 @@ export function CalendarView() {
           >
             <span className="day-number">{day.date()}</span>
             <div className="stack-preview">
-              {items.slice(0, 3).map((img, idx) => (
-                <img
-                  key={img.id}
-                  src={img.dataUrl}
-                  alt=""
-                  className="stack-image"
-                  style={{ transform: `rotate(${(idx - 1) * 6}deg) translateY(${idx * 3}px)` }}
-                />
-              ))}
+              {items.length > 0 ? (
+                <div className="photo-stack">
+                  {items.length > 2 ? <span className="paper-layer layer-back" aria-hidden="true" /> : null}
+                  {items.length > 1 ? <span className="paper-layer layer-mid" aria-hidden="true" /> : null}
+                  <img src={items[0].dataUrl} alt="" className="stack-image-main" />
+                </div>
+              ) : null}
             </div>
-            {items.length > 3 && <small>+{items.length - 3}</small>}
+            {items.length > 1 && <small>+{items.length - 1}</small>}
           </button>
         );
       })}
