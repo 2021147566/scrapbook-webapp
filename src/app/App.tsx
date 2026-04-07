@@ -203,8 +203,10 @@ function CalendarPage() {
           </div>
 
           <div className="calendar-sidebar-card calendar-sidebar-upload">
-            <strong>사진 추가</strong>
-            <small>Ctrl+V 붙여넣기</small>
+            <div className="calendar-sidebar-upload-head">
+              <strong>사진 추가</strong>
+              <small>Ctrl+V 붙여넣기</small>
+            </div>
             <button type="button" className="calendar-sidebar-upload-btn" onClick={() => fileInputRef.current?.click()}>
               이미지 선택
             </button>
