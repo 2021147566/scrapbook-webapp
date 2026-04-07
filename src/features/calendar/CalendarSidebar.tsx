@@ -190,18 +190,16 @@ export function CalendarSidebar() {
                   onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
                   placeholder="사진 이름"
                 />
-                <div className="image-card-actions">
-                  <button type="button" disabled={readOnly} onClick={() => removeImage(selectedDate, img.id)}>
-                    삭제
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly || index === 0}
-                    onClick={() => moveImage(selectedDate, index, 0)}
-                  >
-                    대표
-                  </button>
-                </div>
+                {!readOnly ? (
+                  <div className="image-card-actions">
+                    <button type="button" onClick={() => removeImage(selectedDate, img.id)}>
+                      삭제
+                    </button>
+                    <button type="button" disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
+                      대표
+                    </button>
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>
