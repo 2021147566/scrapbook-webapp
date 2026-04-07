@@ -199,6 +199,18 @@ a {
   color: #3d5a2e;
 }
 
+.settings-account-line {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.settings-logout-below-account {
+  margin: 0 0 14px;
+  align-self: flex-start;
+}
+
 .settings-backup-row {
   display: flex;
   flex-wrap: wrap;
@@ -326,6 +338,9 @@ a {
   color: #4b3217;
   font-size: 14px;
   line-height: 1.25;
+  word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .topbar-guest-cta {

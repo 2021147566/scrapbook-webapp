@@ -1,11 +1,12 @@
 /**
- * 메모먼트 꾹꾹체: VITE_MEMOMENT_FONT_*_URL 이 있으면 외부 URL로 @font-face 주입,
- * 없으면 public/fonts 의 로컬 파일(배포 시 레포에 포함된 경우) 사용.
+ * 메모먼트 꾹꾹체: public/fonts 로컬 파일 또는 VITE_MEMOMENT_FONT_*_URL.
  *
- * 로컬 개발(vite dev)에서는 Firebase Storage URL을 쓰면 @font-face 요청이
- * cross-origin이라 버킷 CORS가 없으면 브라우저가 차단한다. 기본값은 dev에서
- * 로컬 public/fonts만 사용한다. Storage URL로 dev 테스트 시 .env에
- * VITE_MEMOMENT_DEV_USE_STORAGE=true 를 넣고, 버킷에 CORS를 설정한다.
+ * GitHub Pages 등 다른 출처(Storage)에서 폰트를 불러오면 버킷 CORS가 없으면
+ * 브라우저가 @font-face 를 막는다. 프로덕션 빌드는 기본으로 로컬 폰트만 쓴다.
+ * Storage URL을 꼭 쓰려면 버킷 CORS에 Pages origin을 넣거나
+ * VITE_MEMOMENT_FORCE_REMOTE_FONTS=true 로 강제한다.
+ *
+ * 로컬 dev: 기본은 public/fonts. Storage 테스트 시 VITE_MEMOMENT_DEV_USE_STORAGE=true
  */
 export function injectMemomentFontFace(): void {
   if (document.querySelector('style[data-memoment-font]')) return;
@@ -19,11 +20,16 @@ export function injectMemomentFontFace(): void {
   const useStorageInDev =
     import.meta.env.DEV && import.meta.env.VITE_MEMOMENT_DEV_USE_STORAGE === 'true';
 
+  const forceRemote =
+    import.meta.env.PROD && import.meta.env.VITE_MEMOMENT_FORCE_REMOTE_FONTS === 'true';
+
   const otf = import.meta.env.VITE_MEMOMENT_FONT_OTF_URL?.trim();
   const ttf = import.meta.env.VITE_MEMOMENT_FONT_TTF_URL?.trim();
 
   let src = '';
   if (import.meta.env.DEV && !useStorageInDev) {
+    src = localSrc;
+  } else if (import.meta.env.PROD && !forceRemote) {
     src = localSrc;
   } else {
     if (otf) src += part(otf, 'opentype');

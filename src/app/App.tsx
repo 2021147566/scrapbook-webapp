@@ -88,14 +88,16 @@ function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): Per
   };
 }
 
-/** 로그인 시 상단 제목: 구글 표시 이름, 없으면 이메일 @ 앞 */
+/** 로그인 시: 표시이름(없으면 @앞) (전체 이메일) */
+function formatAccountLabel(user: User): string {
+  const email = user.email ?? '';
+  const primary = user.displayName?.trim() || email.split('@')[0]?.trim() || '사용자';
+  return email ? `${primary} (${email})` : primary;
+}
+
 function diaryTitleForUser(user: User | null): string {
   if (!user) return '의서의 일기';
-  const name = user.displayName?.trim();
-  if (name) return `${name}의 일기`;
-  const local = (user.email ?? '').split('@')[0]?.trim();
-  if (local) return `${local}의 일기`;
-  return '내 일기';
+  return formatAccountLabel(user);
 }
 
 function useFirebaseAuthUser(): User | null {
@@ -395,9 +397,21 @@ function SettingsPage() {
         <p className="settings-hint">환경변수가 없어서 클라우드 동기화를 쓸 수 없습니다.</p>
       ) : (
         <>
-          <p className="settings-hint settings-hint--ok">
-            <strong>{authUser.displayName ?? authUser.email}</strong> 로그인 중
-          </p>
+          <p className="settings-hint settings-hint--ok settings-account-line">{formatAccountLabel(authUser)}</p>
+          <button
+            type="button"
+            className="settings-backup-btn settings-firebase-logout settings-logout-below-account"
+            onClick={async () => {
+              try {
+                await logoutFirebase();
+                setSyncNote('로그아웃했습니다.');
+              } catch (e) {
+                setSyncNote(e instanceof Error ? e.message : '로그아웃 실패');
+              }
+            }}
+          >
+            로그아웃
+          </button>
           <div className="settings-firebase-actions">
             <div className="settings-firebase-row">
               <button
@@ -435,20 +449,6 @@ function SettingsPage() {
                 내려받기
               </button>
             </div>
-            <button
-              type="button"
-              className="settings-backup-btn settings-firebase-logout"
-              onClick={async () => {
-                try {
-                  await logoutFirebase();
-                  setSyncNote('로그아웃했습니다.');
-                } catch (e) {
-                  setSyncNote(e instanceof Error ? e.message : '로그아웃 실패');
-                }
-              }}
-            >
-              로그아웃
-            </button>
             <label className="settings-auto-sync">
               <input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />
               자동 동기화(10초마다 업로드)
