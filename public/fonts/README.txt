@@ -1,10 +1,12 @@
 메모먼트 꾹꾹체 (로컬 웹폰트)
 
-1) https://www.memoment.kr/font 에서 PC용 폰트를 받습니다.
-2) 이 폴더(public/fonts)에 아래 이름 중 하나로 저장하세요.
-   - MemomentKkukkuk.woff2 (권장, 용량 작음)
-   - MemomentKkukkuk.otf 또는 MemomentKkukkuk.ttf
-   - 다운로드 파일명이 다르면 위 이름으로 복사/이름 변경
-3) memoment-face.css 가 위 파일을 읽습니다.
+현재 이 폴더에 있는 공식 파일:
+  - MemomentKkukkukk.otf
+  - MemomentKkukkukk.ttf
 
-※ 라이선스: 상업·비상업 사용 가능. 폰트 파일 수정·재배포·무단 업로드는 금지(공식 페이지 안내).
+memoment-face.css 가 위 파일을 읽습니다.
+
+※ OTF는 용량이 클 수 있어, 필요하면 로컬에서 WOFF2로 변환한 뒤
+   memoment-face.css 의 src 맨 위에 .woff2 한 줄을 추가하면 로딩이 가벼워집니다.
+
+라이선스: https://www.memoment.kr/font (웹 임베딩 허용, 파일 무단 재배포 금지)
