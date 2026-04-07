@@ -17,6 +17,8 @@ import {
 import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot, ScrapImage } from '../types';
 
+const EMPTY_IMAGES: ScrapImage[] = [];
+
 function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): PersistedSnapshot {
   const imagesByDate: PersistedSnapshot['imagesByDate'] = { ...local.imagesByDate };
   for (const [date, images] of Object.entries(cloud.imagesByDate)) {
@@ -104,10 +106,11 @@ function Header() {
 
 function CalendarPage() {
   const selectedDate = useScrapStore((s) => s.selectedDate);
-  const images = useScrapStore((s) => s.imagesByDate[selectedDate] ?? []);
+  const imagesByDate = useScrapStore((s) => s.imagesByDate);
   const addImage = useScrapStore((s) => s.addImage);
   const removeImage = useScrapStore((s) => s.removeImage);
   const [pending, setPending] = useState<string | null>(null);
+  const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
 
   const onFiles = async (files: FileList | null) => {
     if (!files?.length) return;
