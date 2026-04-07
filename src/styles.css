@@ -146,6 +146,35 @@ a {
   }
 }
 
+/* 넓은 화면: 상단 제목·내비·월 컨트롤 확대 */
+@media (min-width: 1200px) {
+  .topbar-brand {
+    font-size: 15px;
+    max-width: min(22vw, 16rem);
+  }
+
+  .topbar-month strong {
+    font-size: 1rem;
+  }
+
+  .topbar .topbar-month button {
+    padding: 5px 11px;
+    font-size: 13px;
+    border-radius: 7px;
+  }
+
+  .topbar-links a {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+
+  .topbar-logout-link {
+    font-size: 14px;
+  }
+}
+
 .row {
   display: flex;
   gap: 8px;
@@ -947,15 +976,6 @@ a {
   border-color: #9aaa8c;
   background: linear-gradient(165deg, #fcfbf6 0%, #eef0e6 100%);
   box-shadow: inset 0 0 0 1px rgba(154, 170, 140, 0.35);
-}
-
-.calendar-cell-more {
-  font-size: 9px;
-  color: #8a794e;
-  text-align: center;
-  margin-top: auto;
-  padding-top: 2px;
-  line-height: 1.15;
 }
 
 .calendar-cell.muted {

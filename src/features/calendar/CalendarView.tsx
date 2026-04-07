@@ -144,7 +144,6 @@ export function CalendarDateGrid() {
                 </div>
               ) : null}
             </div>
-            {items.length > 1 && <small className="calendar-cell-more">+{items.length - 1}</small>}
           </button>
         );
       })}
@@ -252,7 +251,6 @@ export function CalendarMobileMonthScroller() {
                     </div>
                   ) : null}
                 </div>
-                {items.length > 1 && <small className="calendar-cell-more">+{items.length - 1}</small>}
               </button>
             );
           })}
