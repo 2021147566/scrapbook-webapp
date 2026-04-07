@@ -207,12 +207,6 @@ a {
   color: #6b5538;
 }
 
-.settings-hint--subtle {
-  margin: -4px 0 14px;
-  font-size: 13px;
-  color: #8a784f;
-}
-
 .settings-routine-grid {
   display: grid;
   gap: 14px;

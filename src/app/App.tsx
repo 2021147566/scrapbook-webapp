@@ -422,7 +422,6 @@ function SettingsPage() {
       ) : (
         <>
           <p className="settings-hint settings-hint--ok settings-account-line">{formatAccountLabel(authUser)}</p>
-          <p className="settings-hint settings-hint--subtle">로그아웃은 상단 일기 주인 옆에서 할 수 있어요.</p>
           <div className="settings-firebase-actions">
             <div className="settings-firebase-row">
               <button
