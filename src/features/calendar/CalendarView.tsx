@@ -3,9 +3,9 @@ import { useMemo } from 'react';
 import clsx from 'clsx';
 import { useScrapStore } from '../../store/scrapStore';
 
-function buildGrid(cursor: Date): dayjs.Dayjs[] {
-  const start = dayjs(cursor).startOf('month').startOf('week');
-  return Array.from({ length: 42 }, (_, i) => start.add(i, 'day'));
+function buildMonthDays(cursor: Date): dayjs.Dayjs[] {
+  const start = dayjs(cursor).startOf('month');
+  return Array.from({ length: start.daysInMonth() }, (_, i) => start.add(i, 'day'));
 }
 
 export function CalendarView() {
@@ -15,22 +15,31 @@ export function CalendarView() {
   const routineByDate = useScrapStore((s) => s.routineByDate);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
   const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
-  const grid = useMemo(() => buildGrid(monthCursor), [monthCursor]);
-  const currentMonth = dayjs(monthCursor).month();
+  const monthDays = useMemo(() => buildMonthDays(monthCursor), [monthCursor]);
+  const leadingBlanks = dayjs(monthCursor).startOf('month').day();
+  const weekLabels = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
-    <div className="calendar-grid">
-      {grid.map((day) => {
+    <>
+      <div className="calendar-weekdays" aria-hidden>
+        {weekLabels.map((label) => (
+          <span key={label} className="calendar-weekday">
+            {label}
+          </span>
+        ))}
+      </div>
+      <div className="calendar-grid">
+        {Array.from({ length: leadingBlanks }).map((_, i) => (
+          <div key={`blank-${i}`} className="calendar-cell calendar-cell--empty" aria-hidden />
+        ))}
+        {monthDays.map((day) => {
         const key = day.format('YYYY-MM-DD');
         const items = imagesByDate[key] ?? [];
         const routines = routineByDate[key] ?? [false, false, false];
         return (
           <button
             key={key}
-            className={clsx('calendar-cell', {
-              muted: day.month() !== currentMonth,
-              selected: key === selectedDate,
-            })}
+            className={clsx('calendar-cell', { selected: key === selectedDate })}
             onClick={() => setSelectedDate(key)}
           >
             <div className="day-header">
@@ -84,7 +93,8 @@ export function CalendarView() {
             {items.length > 1 && <small>+{items.length - 1}</small>}
           </button>
         );
-      })}
-    </div>
+        })}
+      </div>
+    </>
   );
 }

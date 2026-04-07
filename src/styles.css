@@ -1,5 +1,14 @@
+/* 메모먼트 꾹꾹체 — 눈누·projectnoonnu / jsDelivr (상업·웹 사용 허용, 라이선스: 눈누·메모먼트 안내 준수) */
+@font-face {
+  font-family: 'MemomentKkukkuk';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@main/MemomentKkukkuk.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  font-family: "Noto Sans KR", Inter, "Segoe UI", sans-serif;
+  font-family: 'MemomentKkukkuk', 'Noto Sans KR', Inter, 'Segoe UI', sans-serif;
   color: #2f2518;
   background: #efe4cf;
 }
@@ -111,6 +120,19 @@ a {
   grid-auto-rows: minmax(min-content, auto);
 }
 
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 13px;
+  color: #7a6245;
+}
+
 .calendar-cell {
   display: flex;
   flex-direction: column;
@@ -126,6 +148,11 @@ a {
 
 .calendar-cell.muted {
   opacity: 0.45;
+}
+
+.calendar-cell--empty {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .calendar-cell.selected {
