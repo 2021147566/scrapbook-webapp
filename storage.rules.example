@@ -1,18 +1,7 @@
 // =============================================================================
-// Storage → 규칙 → 붙여넣기 후 [게시]
-//
-// 동작 요약
-// - 비로그인: scrapbooks/{게스트UID}/ 아래 파일만 읽기 (snapshot.json 등 공개 일기)
-// - 로그인: scrapbooks/{본인 UID}/ 아래 파일 읽기·쓰기 (업로드·동기화)
-// - 다른 사람 경로: 접근 불가
-//
-// UID는 src/config/guest.ts 의 GUEST_DEFAULT_UID_FALLBACK 과 반드시 동일해야 함.
-//
-// ★ CORS (GitHub Pages에서 snapshot.json 읽을 때 필수)
-// 브라우저는 Storage REST에 Origin 헤더를 보냅니다. 버킷에 CORS가 없으면
-// "blocked by CORS policy" 가 납니다. 레포 루트 storage-cors.json 을 적용:
-//   gsutil cors set storage-cors.json gs://<버킷이름>.appspot.com
-// 또는 Google Cloud Console → Cloud Storage → 해당 버킷 → CORS 편집
+// Storage → 규칙 → 게시
+// - scrapbooks/{uid}/** : 누구나 읽기 (공개)
+// - 쓰기: 로그인 + 본인 폴더 + 소유자 이메일
 // =============================================================================
 
 rules_version = '2';
@@ -20,14 +9,11 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     match /scrapbooks/{userId}/{allPaths=**} {
-      // 읽기: 공개 게스트 폴더 OR 로그인한 사용자의 본인 폴더
-      allow read: if userId == 'xYC8k14kzsOztdUbD0XZ0kJ9xho1'
-        || (request.auth != null && request.auth.uid == userId);
+      allow read: if true;
 
-      // 쓰기: 로그인한 사용자만, 본인 폴더만
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.auth.token.email == 'euiseo053103@gmail.com';
     }
-
-    // scrapbooks 외 경로는 규칙 없음 → 기본 거부
   }
 }

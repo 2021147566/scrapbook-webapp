@@ -9,13 +9,14 @@ import { BookView } from '../features/book/BookView';
 import { importSnapshot, loadSnapshot, saveSnapshot } from '../lib/storage/indexeddb';
 import { mergeSnapshots } from '../lib/snapshotMerge';
 import type { User } from 'firebase/auth';
+import { isOwnerEmail, OWNER_EMAIL } from '../config/scrapbookOwner';
 import {
-  canLoadGuestDefault,
-  fetchGuestDefaultSnapshot,
+  canLoadPublicScrapbook,
+  fetchPublicScrapbookSnapshot,
   getCurrentUser,
   isFirebaseConfigured,
-  logGuestBootstrapLine,
-  logGuestSkip,
+  logPublicBootstrapLine,
+  logPublicSkip,
   loginWithGoogle,
   logoutFirebase,
   pullSnapshot,
@@ -23,7 +24,6 @@ import {
   resolveInitialAuth,
   watchAuthState,
 } from '../lib/sync/firebaseSync';
-import { GUEST_DEFAULT_DIARY_TITLE } from '../config/guest';
 import { ReadOnlyProvider, useReadOnly } from '../context/ReadOnlyContext';
 import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot } from '../types';
@@ -53,15 +53,9 @@ function formatAccountLabel(user: User): string {
   return email ? `${primary} (${email})` : primary;
 }
 
-/** 상단 제목: 로그인 시 "○○의 일기" / 비로그인+Firebase는 의서 기본 / 로컬만 */
-function headerDiaryTitle(authUser: User | null): string {
-  if (authUser) {
-    const email = authUser.email ?? '';
-    const name = authUser.displayName?.trim() || email.split('@')[0]?.trim() || '사용자';
-    return `${name}의 일기`;
-  }
-  if (isFirebaseConfigured()) return GUEST_DEFAULT_DIARY_TITLE;
-  return '스크랩북';
+/** 상단 고정 제목 */
+function headerTitle(): string {
+  return isFirebaseConfigured() ? '일기' : '스크랩북';
 }
 
 function emptyPersistedSnapshot(): PersistedSnapshot {
@@ -74,11 +68,20 @@ function emptyPersistedSnapshot(): PersistedSnapshot {
   };
 }
 
-/** 설정의「내려받기」와 동일: 클라우드 → 로컬 병합 */
+/** 소유자 전용: 클라우드 pull → 로컬 병합 */
 async function pullCloudMergeIntoStore(loadState: (s: PersistedSnapshot) => void): Promise<boolean> {
   const cloud = await pullSnapshot();
   if (!cloud) return false;
   loadState(mergeSnapshots(useScrapStore.getState().toSnapshot(), cloud));
+  return true;
+}
+
+/** 공개 일기(모든 방문자) */
+async function mergePublicIntoStore(loadState: (s: PersistedSnapshot) => void): Promise<boolean> {
+  if (!canLoadPublicScrapbook()) return false;
+  const pub = await fetchPublicScrapbookSnapshot();
+  if (!pub) return false;
+  loadState(mergeSnapshots(useScrapStore.getState().toSnapshot(), pub));
   return true;
 }
 
@@ -98,38 +101,34 @@ function usePersistState() {
     let cancelled = false;
     (async () => {
       try {
-        logGuestBootstrapLine();
+        logPublicBootstrapLine();
         const user = await resolveInitialAuth();
         if (cancelled) return;
         const snapshot = await loadSnapshot();
         if (cancelled) return;
         if (snapshot) loadState(snapshot);
         if (!isFirebaseConfigured()) {
-          logGuestSkip('Firebase 미설정');
+          logPublicSkip('Firebase 미설정');
           return;
         }
-        if (user) {
+        if (user && isOwnerEmail(user)) {
           try {
             const ok = await pullCloudMergeIntoStore(loadState);
-            if (ok && !cancelled) console.info('[클라우드] 앱 시작 시 자동 내려받기 병합 완료');
+            if (ok && !cancelled) console.info('[클라우드] 소유자 자동 내려받기 완료');
           } catch (e) {
-            console.warn('[클라우드] 시작 시 자동 내려받기 실패', e);
+            console.warn('[클라우드] 시작 시 내려받기 실패', e);
           }
           return;
         }
-        if (!canLoadGuestDefault()) {
-          logGuestSkip('게스트 URL/UID 없음');
+        if (!canLoadPublicScrapbook()) {
+          logPublicSkip('공개 UID/URL 없음');
           return;
         }
-        const guest = await fetchGuestDefaultSnapshot();
-        if (!guest || cancelled) {
-          if (!cancelled && !guest) logGuestSkip('게스트 스냅샷이 비어 있음(위 경고 참고)');
-          return;
-        }
-        loadState(mergeSnapshots(useScrapStore.getState().toSnapshot(), guest));
-        console.info('[게스트 일기] 로컬 상태에 병합 완료');
+        const ok = await mergePublicIntoStore(loadState);
+        if (!cancelled && ok) console.info('[스크랩북] 공개 일기 병합 완료');
+        else if (!cancelled && !ok) logPublicSkip('공개 스냅샷 비어 있음(위 로그 참고)');
       } catch (error) {
-        console.warn('IndexedDB 또는 게스트 일기 로드 실패.', error);
+        console.warn('IndexedDB 또는 공개 일기 로드 실패.', error);
       }
     })();
     return () => {
@@ -164,18 +163,23 @@ function useCloudPullOnLogin() {
       if (!wasLoggedOut || user === null) return;
       (async () => {
         try {
-          const ok = await pullCloudMergeIntoStore(loadState);
-          if (ok) console.info('[클라우드] 로그인 후 자동 내려받기 병합 완료');
+          if (user && isOwnerEmail(user)) {
+            const ok = await pullCloudMergeIntoStore(loadState);
+            if (ok) console.info('[클라우드] 로그인 후 소유자 자동 내려받기');
+          } else {
+            const ok = await mergePublicIntoStore(loadState);
+            if (ok) console.info('[스크랩북] 로그인 후 공개 일기 갱신');
+          }
         } catch (e) {
-          console.warn('[클라우드] 로그인 후 자동 내려받기 실패', e);
+          console.warn('[클라우드] 로그인 후 동기화 실패', e);
         }
       })();
     });
   }, [loadState]);
 }
 
-/** 로그아웃 시 로컬·IndexedDB에 남은 내용과 섞이지 않게 게스트 스냅샷만 다시 로드 */
-function useGuestReloadOnLogout() {
+/** 로그아웃 시 공개 일기만 다시 로드 */
+function usePublicReloadOnLogout() {
   const loadState = useScrapStore((s) => s.loadSnapshot);
   useEffect(() => {
     if (!isFirebaseConfigured()) return;
@@ -190,14 +194,14 @@ function useGuestReloadOnLogout() {
       const wasLoggedIn = prevUser !== null;
       prevUser = user;
       if (!wasLoggedIn || user !== null) return;
-      if (!canLoadGuestDefault()) return;
+      if (!canLoadPublicScrapbook()) return;
       (async () => {
         try {
-          const guest = await fetchGuestDefaultSnapshot();
-          if (!guest) return;
-          loadState(mergeSnapshots(emptyPersistedSnapshot(), guest));
+          const pub = await fetchPublicScrapbookSnapshot();
+          if (!pub) return;
+          loadState(mergeSnapshots(emptyPersistedSnapshot(), pub));
         } catch (e) {
-          console.warn('로그아웃 후 게스트 일기 복원 실패', e);
+          console.warn('로그아웃 후 공개 일기 복원 실패', e);
         }
       })();
     });
@@ -249,16 +253,16 @@ function Header() {
           </nav>
         </div>
       </div>
-      <div className="topbar-guest-row" aria-label="일기 주인">
+      <div className="topbar-guest-row" aria-label="일기">
         <div className="topbar-guest-left">
-          <span className="topbar-guest-title">{headerDiaryTitle(authUser)}</span>
+          <span className="topbar-guest-title">{headerTitle()}</span>
           {authUser && hasFirebase ? (
             <button type="button" className="topbar-logout-link" onClick={onLogoutClick}>
               로그아웃
             </button>
-          ) : !authUser && hasFirebase ? (
+          ) : hasFirebase ? (
             <Link className="topbar-guest-cta topbar-guest-cta--inline" to="/settings">
-              나도 일기 쓰기
+              로그인
             </Link>
           ) : null}
         </div>
@@ -366,7 +370,8 @@ function SettingsPage() {
   const authUser = useFirebaseAuthUser();
 
   useEffect(() => {
-    if (!hasFirebase || !autoSync || !getCurrentUser()) return;
+    const u = getCurrentUser();
+    if (!hasFirebase || !autoSync || !u || !isOwnerEmail(u)) return;
     const timer = setInterval(async () => {
       try {
         await pushSnapshot(toSnapshot());
@@ -396,7 +401,9 @@ function SettingsPage() {
           <p className="settings-hint">Firebase 환경변수가 없어 Google 로그인을 쓸 수 없습니다.</p>
         ) : (
           <>
-            <p className="settings-login-lead">로그인하면 루틴·백업·클라우드 동기화를 사용할 수 있어요.</p>
+            <p className="settings-login-lead">
+              소유자({OWNER_EMAIL})로 로그인하면 편집·업로드·동기화를 사용할 수 있어요.
+            </p>
             <button
               type="button"
               className="settings-backup-btn settings-google-login-btn settings-login-main-btn"
@@ -418,6 +425,22 @@ function SettingsPage() {
           </>
         )}
         {syncNote ? <p className="settings-sync-note">{syncNote}</p> : null}
+      </section>
+    );
+  }
+
+  if (!isOwnerEmail(authUser)) {
+    return (
+      <section className="settings">
+        <p className="settings-hint settings-hint--ok settings-account-line">{formatAccountLabel(authUser)}</p>
+        <p className="settings-hint">
+          편집·업로드·동기화는 소유자({OWNER_EMAIL})만 가능합니다. 지금은 공개 일기 보기만 됩니다.
+        </p>
+        <div className="settings-backup-row">
+          <button type="button" className="settings-backup-btn" onClick={downloadBackup}>
+            화면 내용 백업 내보내기
+          </button>
+        </div>
       </section>
     );
   }
@@ -543,7 +566,7 @@ function AppShell() {
 export function App() {
   usePersistState();
   useCloudPullOnLogin();
-  useGuestReloadOnLogout();
+  usePublicReloadOnLogout();
 
   return (
     <div className="app">

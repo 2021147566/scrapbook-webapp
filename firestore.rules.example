@@ -1,12 +1,8 @@
 // =============================================================================
-// Firestore Database → 규칙 → 붙여넣기 후 [게시]
-//
-// 동작 요약
-// - 비로그인: scrapbooks/{게스트UID} 문서만 읽기 가능 (의서의 일기 공개 뷰)
-// - 로그인: scrapbooks/{본인 UID} 문서 읽기·쓰기 (의서 본인 포함, 누구나 자기 문서만)
-// - 다른 사람 UID 문서: 읽기·쓰기 불가
-//
-// UID는 src/config/guest.ts 의 GUEST_DEFAULT_UID_FALLBACK 과 반드시 동일해야 함.
+// Firestore → 규칙 → 게시
+// - scrapbooks/{uid} 문서: 누구나 읽기 (공개 일기)
+// - 쓰기: 소유자 이메일(euiseo053103@gmail.com) + 본인 UID 문서만
+// UID는 src/config/scrapbookOwner.ts 의 OWNER_UID_FALLBACK 과 동일해야 함.
 // =============================================================================
 
 rules_version = '2';
@@ -14,14 +10,11 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     match /scrapbooks/{userId} {
-      // 읽기: 공개 게스트 일기 1건 OR 로그인한 사용자의 본인 문서
-      allow read: if userId == 'xYC8k14kzsOztdUbD0XZ0kJ9xho1'
-        || (request.auth != null && request.auth.uid == userId);
+      allow read: if true;
 
-      // 쓰기: 로그인한 사용자만, 본인 문서만 (비로그인·타인 문서 불가)
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.auth.token.email == 'euiseo053103@gmail.com';
     }
-
-    // scrapbooks 외 컬렉션은 규칙 없음 → 기본 거부
   }
 }
