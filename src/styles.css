@@ -801,45 +801,46 @@ button:hover {
   margin: 0 auto;
 }
 
-/* 아래 프레임을 위로 겹쳐 스택 느낌 (사진 영역 위주) */
+/* 아래 프레임을 위로 겹쳐 스택 느낌 (사진 영역 위주) — 기울임·드래그 이동은 TS에서 transform 합성 */
 .book-film-stage--vertical .film-frame:not(:first-child) {
   margin-top: -52px;
 }
 
-/* 살짝 기울임 (1:1 비율 유지) */
-.book-film-stage--vertical .film-frame:nth-child(4n + 1) {
-  transform: rotate(-4deg);
-}
-
-.book-film-stage--vertical .film-frame:nth-child(4n + 2) {
-  transform: rotate(5deg);
-}
-
-.book-film-stage--vertical .film-frame:nth-child(4n + 3) {
-  transform: rotate(-3deg);
-}
-
-.book-film-stage--vertical .film-frame:nth-child(4n) {
-  transform: rotate(6deg);
-}
-
-/* 2~3장: 왼쪽/오른쪽 번갈아 (홀/짝) */
+/* 2~3장: 왼쪽/오른쪽 번갈아 (홀/짝) — transform 은 bookFrameTransform.ts */
 .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:nth-child(odd) {
   align-self: flex-start;
   margin-left: 0;
   margin-right: auto;
-  transform: rotate(-5deg) translateX(-12px);
 }
 
 .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:nth-child(even) {
   align-self: flex-end;
   margin-left: auto;
   margin-right: 0;
-  transform: rotate(5deg) translateX(12px);
 }
 
 .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
   margin-top: -58px;
+}
+
+.book-film-stage--vertical .film-frame {
+  cursor: grab;
+}
+
+.book-film-stage--vertical .film-frame:active {
+  cursor: grabbing;
+}
+
+.book-drag-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #7b5d37;
+  text-align: center;
+}
+
+.book-photo-actions {
+  margin-top: 10px;
+  justify-content: center;
 }
 
 /* 책 모드에서는 사진 주변 검은 매트 제거 */

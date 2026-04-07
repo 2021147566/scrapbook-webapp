@@ -1,12 +1,19 @@
 import clsx from 'clsx';
+import { useRef } from 'react';
+import { useScrapStore } from '../../store/scrapStore';
+import type { ScrapImage } from '../../types';
+import { bookFrameTransform } from './bookFrameTransform';
 
-interface FilmImage {
-  id: string;
-  dataUrl: string;
-  title?: string;
-}
+export function BookFilmCollage({ dateKey, images }: { dateKey: string; images: ScrapImage[] }) {
+  const setImageBookOffset = useScrapStore((s) => s.setImageBookOffset);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    ox: number;
+    oy: number;
+  } | null>(null);
 
-export function BookFilmCollage({ images }: { images: FilmImage[] }) {
   if (images.length === 0) return null;
 
   const n = images.length;
@@ -23,10 +30,45 @@ export function BookFilmCollage({ images }: { images: FilmImage[] }) {
         <div
           key={img.id}
           className={`film-frame film-frame--slot-${i}`}
-          style={{ zIndex: n - i }}
+          style={{
+            zIndex: n - i,
+            transform: bookFrameTransform(i, n, img.bookOffset),
+            touchAction: 'none',
+          }}
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            dragRef.current = {
+              pointerId: e.pointerId,
+              startX: e.clientX,
+              startY: e.clientY,
+              ox: img.bookOffset?.x ?? 0,
+              oy: img.bookOffset?.y ?? 0,
+            };
+          }}
+          onPointerMove={(e) => {
+            const d = dragRef.current;
+            if (!d || e.pointerId !== d.pointerId) return;
+            setImageBookOffset(dateKey, img.id, {
+              x: d.ox + (e.clientX - d.startX),
+              y: d.oy + (e.clientY - d.startY),
+            });
+          }}
+          onPointerUp={(e) => {
+            if (dragRef.current?.pointerId === e.pointerId) {
+              dragRef.current = null;
+            }
+          }}
+          onPointerCancel={(e) => {
+            if (dragRef.current?.pointerId === e.pointerId) {
+              dragRef.current = null;
+            }
+          }}
         >
           <div className="film-frame-mat">
-            <img src={img.dataUrl} alt="" />
+            <img src={img.dataUrl} alt="" draggable={false} />
           </div>
           {img.title ? <div className="film-caption">{img.title}</div> : null}
         </div>

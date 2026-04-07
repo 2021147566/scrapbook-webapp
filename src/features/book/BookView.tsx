@@ -6,6 +6,7 @@ import { BookFilmCollage } from './BookFilmCollage';
 
 export function BookView() {
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
+  const resetBookLayoutForDate = useScrapStore((s) => s.resetBookLayoutForDate);
   const dates = useMemo(
     () => Object.keys(imagesByDate).filter((k) => imagesByDate[k]?.length).sort(),
     [imagesByDate],
@@ -28,7 +29,13 @@ export function BookView() {
             </header>
             {currentImages.length > 0 ? (
               <div className="book-photo-stage">
-                <BookFilmCollage images={currentImages} />
+                <p className="book-drag-hint">사진을 드래그해 위치를 조정할 수 있어요.</p>
+                <BookFilmCollage dateKey={currentDate} images={currentImages} />
+                <div className="row book-photo-actions">
+                  <button type="button" onClick={() => resetBookLayoutForDate(currentDate)}>
+                    이 날 위치 초기화
+                  </button>
+                </div>
                 <small className="book-count">이 날의 사진 {currentImages.length}장</small>
               </div>
             ) : (

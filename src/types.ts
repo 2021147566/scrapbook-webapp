@@ -5,6 +5,8 @@ export interface ScrapImage {
   date: DateKey;
   dataUrl: string;
   title?: string;
+  /** 책 모드에서 드래그로 조정한 픽셀 이동(기본 레이아웃 기준) */
+  bookOffset?: { x: number; y: number };
   createdAt: number;
   updatedAt: number;
 }
