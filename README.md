@@ -31,5 +31,6 @@ VITE_FIREBASE_APP_ID=...
 2. 기본 브랜치를 `main`으로 설정
 3. push하면 `.github/workflows/deploy-pages.yml`로 자동 배포
 4. 저장소 Settings > Pages에서 Build and deployment를 `GitHub Actions`로 설정
+5. 배포된 사이트에서도 Firebase를 쓰려면 저장소 **Settings → Secrets and variables → Actions**에 로컬 `.env`와 동일한 이름으로 `VITE_FIREBASE_*` 5개를 등록한 뒤, `main`에 push해 다시 빌드되게 할 것 (Pages는 서버가 없어 “재시작”이 아니라 **워크플로 재실행 = 재배포**).
 
 `gh` CLI가 설치돼 있으면 더 빠르게 설정할 수 있습니다.
