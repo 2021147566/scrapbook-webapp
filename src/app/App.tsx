@@ -312,8 +312,9 @@ function Header() {
   };
 
   return (
-    <header className="topbar">
+    <header className="topbar" aria-label="사이트 헤더">
       <div className="topbar-row">
+        <span className="topbar-brand">{headerTitle()}</span>
         <div className="topbar-month row">
           <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(-1)} aria-label="이전 달">
             ◀
@@ -335,19 +336,10 @@ function Header() {
               설정
             </Link>
           </nav>
-        </div>
-      </div>
-      <div className="topbar-guest-row" aria-label="일기">
-        <div className="topbar-guest-left">
-          <span className="topbar-guest-title">{headerTitle()}</span>
           {authUser && hasFirebase ? (
             <button type="button" className="topbar-logout-link" onClick={onLogoutClick}>
               로그아웃
             </button>
-          ) : hasFirebase ? (
-            <Link className="topbar-guest-cta topbar-guest-cta--inline" to="/settings">
-              로그인
-            </Link>
           ) : null}
         </div>
       </div>

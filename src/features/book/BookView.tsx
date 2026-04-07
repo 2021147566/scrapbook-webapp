@@ -57,7 +57,10 @@ export function BookView() {
         <section className="book-page">
           <>
             {isMobileLayout ? (
-              <header className="book-page-header book-page-header--mobile-daynav">
+              <header
+                className="book-page-header book-page-header--mobile-daynav"
+                aria-label={dayjs(selectedDate).locale('ko').format('YYYY년 M월 D일')}
+              >
                 <button
                   type="button"
                   className="book-daynav-btn"
@@ -67,7 +70,6 @@ export function BookView() {
                 >
                   ◀
                 </button>
-                <h3>{dayjs(selectedDate).format('YYYY년 M월 D일')}</h3>
                 <button
                   type="button"
                   className="book-daynav-btn"

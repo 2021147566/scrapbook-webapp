@@ -72,15 +72,17 @@ export function CalendarSidebar() {
   return (
     <>
       <aside className={`calendar-sidebar${readOnly ? ' calendar-sidebar--readonly' : ''}`} aria-label="선택 날짜·업로드·루틴·사진">
-        <div className="calendar-sidebar-card calendar-sidebar-datecard">
-          <span className="calendar-sidebar-date-label">선택한 날</span>
-          <time className="calendar-sidebar-date-main" dateTime={selectedDate}>
-            {dayjs(selectedDate).locale('ko').format('M월 D일 ddd')}
-          </time>
-          <span className="calendar-sidebar-date-sub">
-            {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
-          </span>
-        </div>
+        {!isMobileCalendar ? (
+          <div className="calendar-sidebar-card calendar-sidebar-datecard">
+            <span className="calendar-sidebar-date-label">선택한 날</span>
+            <time className="calendar-sidebar-date-main" dateTime={selectedDate}>
+              {dayjs(selectedDate).locale('ko').format('M월 D일 ddd')}
+            </time>
+            <span className="calendar-sidebar-date-sub">
+              {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
+            </span>
+          </div>
+        ) : null}
 
         {showPhotoAdd ? (
           <div className="calendar-sidebar-card calendar-sidebar-upload">
