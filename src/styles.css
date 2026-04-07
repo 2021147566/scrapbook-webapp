@@ -890,7 +890,7 @@ button:hover {
 }
 
 .book-collage-wrap {
-  --book-polaroid-size: min(300px, 54vmin, 62vw);
+  --book-polaroid-size: min(248px, 44vmin, 52vw);
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -938,7 +938,7 @@ button:hover {
 .book-film-stage {
   position: relative;
   width: 100%;
-  max-width: min(100%, 760px);
+  max-width: min(100%, 320px);
   margin: 0 auto;
 }
 
@@ -990,43 +990,43 @@ button:hover {
 .book-film-stage--vertical {
   flex: 0 1 auto;
   display: flex;
-  flex-direction: row;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: center;
   justify-content: flex-start;
   gap: 0;
   width: 100%;
-  max-width: min(100%, 760px);
-  padding: 10px 0 12px;
+  max-width: min(100%, 380px);
+  padding: 4px 0 8px;
   box-sizing: border-box;
-  overflow-x: auto;
-  overflow-y: hidden;
 }
 
 .book-film-stage--vertical .film-frame {
   position: relative;
-  width: fit-content;
+  width: min(100%, 280px);
   flex: 0 0 auto;
-  margin: 0;
+  margin: 0 auto;
 }
 
-/* 오른쪽 프레임을 왼쪽으로 겹쳐 가로 스택 느낌 */
+/* 아래 프레임을 위로 겹쳐 세로 스택 */
 .book-film-stage--vertical .film-frame:not(:first-child) {
-  margin-left: calc(var(--book-polaroid-size) * -0.28);
+  margin-top: -72px;
 }
 
-/* 2~3장일 때도 가로 정렬 유지 */
+/* 2~3장: 홀/짝 좌우 스태거 */
 .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:nth-child(odd) {
-  align-self: flex-end;
-  margin-right: 0;
+  align-self: flex-start;
+  margin-left: 0;
+  margin-right: auto;
 }
 
 .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:nth-child(even) {
   align-self: flex-end;
+  margin-left: auto;
   margin-right: 0;
 }
 
 .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
-  margin-left: calc(var(--book-polaroid-size) * -0.3);
+  margin-top: -78px;
 }
 
 .book-film-stage--vertical .film-frame {
@@ -1068,15 +1068,16 @@ button:hover {
   max-width: 100%;
   box-sizing: border-box;
   padding: 9px 9px 24px;
-  margin-right: 0;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .book-collage-wrap .book-film-stage--vertical .film-frame:not(:first-child) {
-  margin-left: calc(var(--book-polaroid-size) * -0.34);
+  margin-top: -118px;
 }
 
 .book-collage-wrap .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
-  margin-left: calc(var(--book-polaroid-size) * -0.36);
+  margin-top: -126px;
 }
 
 .book-collage-wrap .book-film-stage .film-frame-mat {
