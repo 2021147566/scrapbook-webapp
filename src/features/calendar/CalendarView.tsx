@@ -60,7 +60,7 @@ export function CalendarView() {
             </div>
             <div className="stack-preview">
               {items.length > 0 ? (
-                <div className="photo-stack">
+                <div className={clsx('photo-stack', items.length > 1 && 'photo-stack--multi')}>
                   {items.length > 2 ? (
                     <img
                       src={items[2].dataUrl}
