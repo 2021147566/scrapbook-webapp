@@ -7,6 +7,7 @@ import { CalendarDateGrid, CalendarWeekGrid, CalendarWeekdayHeader } from '../fe
 import { CalendarSidebar } from '../features/calendar/CalendarSidebar';
 import { BookView } from '../features/book/BookView';
 import { importSnapshot, loadSnapshot, saveSnapshot } from '../lib/storage/indexeddb';
+import { mergeSnapshots } from '../lib/snapshotMerge';
 import type { User } from 'firebase/auth';
 import {
   canLoadGuestDefault,
@@ -25,8 +26,8 @@ import {
 import { GUEST_DEFAULT_DIARY_TITLE } from '../config/guest';
 import { ReadOnlyProvider, useReadOnly } from '../context/ReadOnlyContext';
 import { useScrapStore } from '../store/scrapStore';
-import type { PersistedSnapshot, ScrapImage } from '../types';
-import { DEFAULT_ROUTINE_LABELS, normalizeRoutineLabels } from '../types';
+import type { PersistedSnapshot } from '../types';
+import { DEFAULT_ROUTINE_LABELS } from '../types';
 
 /** 달력 그리드·사이드바와 동일 기준 (styles.css) */
 const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
@@ -43,53 +44,6 @@ function useMediaQuery(query: string): boolean {
     return () => mq.removeEventListener('change', onChange);
   }, [query]);
   return matches;
-}
-
-function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): PersistedSnapshot {
-  const imagesByDate: PersistedSnapshot['imagesByDate'] = { ...local.imagesByDate };
-  for (const [date, images] of Object.entries(cloud.imagesByDate)) {
-    const merged = new Map<string, ScrapImage>();
-    for (const image of imagesByDate[date] ?? []) merged.set(image.id, image);
-    for (const image of images) {
-      const prev = merged.get(image.id);
-      if (!prev || prev.updatedAt < image.updatedAt) merged.set(image.id, image);
-    }
-    imagesByDate[date] = Array.from(merged.values()).sort((a, b) => b.updatedAt - a.updatedAt);
-  }
-
-  const diaryByDate = { ...local.diaryByDate };
-  for (const [date, entry] of Object.entries(cloud.diaryByDate)) {
-    const prev = diaryByDate[date];
-    if (!prev || prev.updatedAt < entry.updatedAt) diaryByDate[date] = entry;
-  }
-
-  const routineByDate = { ...local.routineByDate };
-  for (const [date, routines] of Object.entries(cloud.routineByDate ?? {})) {
-    const prev = routineByDate[date] ?? [false, false, false];
-    routineByDate[date] = [
-      Boolean(prev[0] || routines?.[0]),
-      Boolean(prev[1] || routines?.[1]),
-      Boolean(prev[2] || routines?.[2]),
-    ];
-  }
-
-  const hasCloudLabels = Array.isArray(cloud.routineLabels) && cloud.routineLabels.length === 3;
-  const hasLocalLabels = Array.isArray(local.routineLabels) && local.routineLabels.length === 3;
-  const routineLabels = !hasCloudLabels
-    ? normalizeRoutineLabels(local.routineLabels)
-    : !hasLocalLabels
-      ? normalizeRoutineLabels(cloud.routineLabels)
-      : (cloud.updatedAt ?? 0) >= (local.updatedAt ?? 0)
-        ? normalizeRoutineLabels(cloud.routineLabels)
-        : normalizeRoutineLabels(local.routineLabels);
-
-  return {
-    updatedAt: Math.max(local.updatedAt ?? 0, cloud.updatedAt ?? 0, Date.now()),
-    imagesByDate,
-    diaryByDate,
-    routineByDate,
-    routineLabels: [...routineLabels],
-  };
 }
 
 /** 로그인 시: 표시이름(없으면 @앞) (전체 이메일) — 설정 등 */

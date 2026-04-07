@@ -10,9 +10,10 @@ import {
   type User,
 } from 'firebase/auth';
 import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
+import { countSnapshotImages, mergeSnapshots } from '../snapshotMerge';
 import { parsePersistedSnapshot } from '../storage/indexeddb';
 import { GUEST_DEFAULT_UID_FALLBACK } from '../../config/guest';
-import { getStorage, ref, uploadString } from 'firebase/storage';
+import { getBytes, getStorage, ref, uploadString } from 'firebase/storage';
 import type { PersistedSnapshot } from '../../types';
 
 function guestDefaultUid(): string | undefined {
@@ -163,6 +164,31 @@ export function logGuestSkip(reason: string): void {
   console.info(GUEST_LOG, '건너뜀:', reason);
 }
 
+/** pushSnapshot이 Storage에 올린 전체 JSON(사진 base64 포함) — Firestore 1MB 제한 보완 */
+async function fetchGuestSnapshotFromStorage(uid: string): Promise<PersistedSnapshot | null> {
+  try {
+    ensureFirebase();
+    const storage = getStorage();
+    const r = ref(storage, `scrapbooks/${uid}/snapshot.json`);
+    const bytes = await getBytes(r);
+    const text = new TextDecoder().decode(bytes);
+    return parsePersistedSnapshot(text);
+  } catch (e) {
+    const detail =
+      e instanceof FirebaseError
+        ? `${e.code} (${e.message})`
+        : e instanceof Error
+          ? e.message
+          : String(e);
+    console.warn(
+      GUEST_LOG,
+      'Storage snapshot.json 읽기 실패(비로그인 읽기 규칙·파일 경로 확인)',
+      detail,
+    );
+    return null;
+  }
+}
+
 export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | null> {
   const url = import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim();
   if (url) {
@@ -195,22 +221,47 @@ export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | n
     const firestore = getFirestore();
     const snapshotDoc = await getDoc(doc(firestore, 'scrapbooks', uid));
     if (!snapshotDoc.exists()) {
+      const stOnly = await fetchGuestSnapshotFromStorage(uid);
+      if (stOnly) {
+        console.info(GUEST_LOG, 'Firestore 문서 없음 → Storage snapshot.json 만 사용');
+        return stOnly;
+      }
       console.warn(
         GUEST_LOG,
-        `문서 없음: ${docPath} — Firestore에 해당 문서를 만들고(또는 로그인 후 업로드) 필드 snapshot 을 채우세요.`,
+        `문서 없음: ${docPath} — Firestore 생성 또는 Storage에 snapshot.json 업로드 필요`,
       );
       return null;
     }
     const data = snapshotDoc.data() as { snapshot?: PersistedSnapshot };
     if (data.snapshot == null) {
+      const stOnly = await fetchGuestSnapshotFromStorage(uid);
+      if (stOnly) {
+        console.info(GUEST_LOG, 'Firestore snapshot 필드 없음 → Storage snapshot.json 만 사용');
+        return stOnly;
+      }
       console.warn(
         GUEST_LOG,
         `문서는 있으나 snapshot 필드가 비어 있음: ${docPath} — 필드 이름이 snapshot 인지 확인하세요.`,
       );
       return null;
     }
-    console.info(GUEST_LOG, 'Firestore에서 스냅샷 로드 성공', docPath);
-    return data.snapshot;
+    const fsSnap = data.snapshot;
+    const fsImg = countSnapshotImages(fsSnap);
+    console.info(GUEST_LOG, 'Firestore 스냅샷 로드', docPath, `이미지 ${fsImg}장(참고: Firestore 문서는 1MB 제한으로 사진이 비어 있을 수 있음)`);
+
+    const stSnap = await fetchGuestSnapshotFromStorage(uid);
+    if (!stSnap) {
+      return fsSnap;
+    }
+    const stImg = countSnapshotImages(stSnap);
+    const merged = mergeSnapshots(fsSnap, stSnap);
+    const mergedImg = countSnapshotImages(merged);
+    console.info(
+      GUEST_LOG,
+      'Storage snapshot.json 병합',
+      `Firestore ${fsImg}장 + Storage ${stImg}장 → 합계 ${mergedImg}장`,
+    );
+    return merged;
   } catch (e) {
     const detail =
       e instanceof FirebaseError

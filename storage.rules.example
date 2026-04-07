@@ -1,0 +1,12 @@
+// Firebase Console → Storage → 규칙
+// GUEST_UID 를 guest.ts 의 UID 와 동일하게 교체 후 게시
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /scrapbooks/{userId}/{fileName} {
+      allow read: if userId == 'GUEST_UID';
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
