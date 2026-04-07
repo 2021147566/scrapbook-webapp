@@ -198,8 +198,12 @@ function usePublicReloadOnLogout() {
       (async () => {
         try {
           const pub = await fetchPublicScrapbookSnapshot();
-          if (!pub) return;
-          loadState(mergeSnapshots(emptyPersistedSnapshot(), pub));
+          if (pub) {
+            loadState(mergeSnapshots(emptyPersistedSnapshot(), pub));
+          } else {
+            console.warn('[스크랩북] 로그아웃 후 공개 스냅샷 없음 — 로컬 임시 편집을 비우고 공개 뷰로 맞춤');
+            loadState(emptyPersistedSnapshot());
+          }
         } catch (e) {
           console.warn('로그아웃 후 공개 일기 복원 실패', e);
         }
@@ -547,7 +551,9 @@ function SettingsPage() {
 
 function AppShell() {
   const authUser = useFirebaseAuthUser();
-  const readOnly = Boolean(isFirebaseConfigured() && !authUser);
+  const readOnly = Boolean(
+    isFirebaseConfigured() && (!authUser || !isOwnerEmail(authUser)),
+  );
 
   return (
     <ReadOnlyProvider value={readOnly}>

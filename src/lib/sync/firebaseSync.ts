@@ -176,30 +176,11 @@ async function fetchOwnerSnapshotFromStorage(uid: string): Promise<PersistedSnap
   }
 }
 
-/** 비로그인 포함 모든 방문자가 보는 공개 스냅샷(소유자 UID 문서) */
-export async function fetchPublicScrapbookSnapshot(): Promise<PersistedSnapshot | null> {
-  const url = import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim();
-  if (url) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.warn(SCRAP_LOG, '공개 URL 요청 실패', res.status, url);
-        return null;
-      }
-      const text = await res.text();
-      const parsed = parsePersistedSnapshot(text);
-      console.info(SCRAP_LOG, '공개 URL 파싱 성공');
-      return parsed;
-    } catch (e) {
-      console.warn(SCRAP_LOG, '공개 URL fetch 실패', url, e);
-      return null;
-    }
-  }
-  const uid = ownerScrapbookUid();
-  if (!uid) {
-    console.warn(SCRAP_LOG, 'UID 없음');
-    return null;
-  }
+/**
+ * Firestore `scrapbooks/{uid}` + Storage `snapshot.json` 병합.
+ * 공개 일기 로드와 소유자 pull이 동일한 소스를 보도록 맞춤(이전엔 pull이 Firestore만 읽어 불일치 발생).
+ */
+async function fetchScrapbookBundleForUid(uid: string): Promise<PersistedSnapshot | null> {
   const docPath = `scrapbooks/${uid}`;
   try {
     ensureFirebase();
@@ -208,7 +189,7 @@ export async function fetchPublicScrapbookSnapshot(): Promise<PersistedSnapshot 
     if (!snapshotDoc.exists()) {
       const stOnly = await fetchOwnerSnapshotFromStorage(uid);
       if (stOnly) {
-        console.info(SCRAP_LOG, 'Firestore 없음 → Storage 만');
+        console.info(SCRAP_LOG, 'Firestore 없음 → Storage 만', docPath);
         return stOnly;
       }
       console.warn(SCRAP_LOG, `문서 없음: ${docPath}`);
@@ -218,7 +199,7 @@ export async function fetchPublicScrapbookSnapshot(): Promise<PersistedSnapshot 
     if (data.snapshot == null) {
       const stOnly = await fetchOwnerSnapshotFromStorage(uid);
       if (stOnly) {
-        console.info(SCRAP_LOG, 'snapshot 필드 없음 → Storage 만');
+        console.info(SCRAP_LOG, 'snapshot 필드 없음 → Storage 만', docPath);
         return stOnly;
       }
       console.warn(SCRAP_LOG, `snapshot 필드 없음: ${docPath}`);
@@ -249,6 +230,33 @@ export async function fetchPublicScrapbookSnapshot(): Promise<PersistedSnapshot 
   }
 }
 
+/** 비로그인 포함 모든 방문자가 보는 공개 스냅샷(소유자 UID 문서) */
+export async function fetchPublicScrapbookSnapshot(): Promise<PersistedSnapshot | null> {
+  const url = import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim();
+  if (url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.warn(SCRAP_LOG, '공개 URL 요청 실패', res.status, url);
+        return null;
+      }
+      const text = await res.text();
+      const parsed = parsePersistedSnapshot(text);
+      console.info(SCRAP_LOG, '공개 URL 파싱 성공');
+      return parsed;
+    } catch (e) {
+      console.warn(SCRAP_LOG, '공개 URL fetch 실패', url, e);
+      return null;
+    }
+  }
+  const uid = ownerScrapbookUid();
+  if (!uid) {
+    console.warn(SCRAP_LOG, 'UID 없음');
+    return null;
+  }
+  return fetchScrapbookBundleForUid(uid);
+}
+
 export async function pushSnapshot(snapshot: PersistedSnapshot): Promise<void> {
   ensureFirebase();
   if (!authUser) throw new Error('로그인 후 동기화할 수 있습니다.');
@@ -269,18 +277,34 @@ export async function pushSnapshot(snapshot: PersistedSnapshot): Promise<void> {
   );
 }
 
-/** 소유자만 자기 문서 pull */
+/** 소유자: Firestore+Storage 병합 pull. env UID와 로그인 UID가 다르면 두 문서를 합침(공개 경로와 동기). */
 export async function pullSnapshot(): Promise<PersistedSnapshot | null> {
   ensureFirebase();
   if (!authUser) throw new Error('로그인 후 동기화할 수 있습니다.');
   if (!isOwnerEmail(authUser)) {
     return null;
   }
-  const firestore = getFirestore();
-  const snapshotDoc = await getDoc(doc(firestore, 'scrapbooks', authUser.uid));
-  if (!snapshotDoc.exists()) return null;
-  const data = snapshotDoc.data() as { snapshot?: PersistedSnapshot };
-  return data.snapshot ?? null;
+  const uid = authUser.uid;
+  const envUid = ownerScrapbookUid();
+
+  if (envUid && envUid !== uid) {
+    console.warn(
+      SCRAP_LOG,
+      'VITE_SCRAPBOOK_OWNER_UID(또는 폴백)와 로그인 UID가 다릅니다. 배포 env를 본인 Google UID로 맞추면 공개·로그인 뷰가 한 문서로 통일됩니다.',
+      { envUid, authUid: uid },
+    );
+  }
+
+  const fromAuth = await fetchScrapbookBundleForUid(uid);
+  if (envUid && envUid !== uid) {
+    const fromEnv = await fetchScrapbookBundleForUid(envUid);
+    if (fromAuth && fromEnv) {
+      // env(공개 경로) 먼저, auth(로그인 UID)를 나중에 두어 snapshot.updatedAt 등에서 최신 쪽이 우선
+      return mergeSnapshots(fromEnv, fromAuth);
+    }
+    return fromAuth ?? fromEnv ?? null;
+  }
+  return fromAuth;
 }
 
 export function getFirebaseAppName(): string {
