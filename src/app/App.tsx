@@ -74,6 +74,14 @@ function emptyPersistedSnapshot(): PersistedSnapshot {
   };
 }
 
+/** 설정의「내려받기」와 동일: 클라우드 → 로컬 병합 */
+async function pullCloudMergeIntoStore(loadState: (s: PersistedSnapshot) => void): Promise<boolean> {
+  const cloud = await pullSnapshot();
+  if (!cloud) return false;
+  loadState(mergeSnapshots(useScrapStore.getState().toSnapshot(), cloud));
+  return true;
+}
+
 function useFirebaseAuthUser(): User | null {
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
@@ -100,12 +108,17 @@ function usePersistState() {
           logGuestSkip('Firebase 미설정');
           return;
         }
-        if (!canLoadGuestDefault()) {
-          logGuestSkip('게스트 URL/UID 없음');
+        if (user) {
+          try {
+            const ok = await pullCloudMergeIntoStore(loadState);
+            if (ok && !cancelled) console.info('[클라우드] 앱 시작 시 자동 내려받기 병합 완료');
+          } catch (e) {
+            console.warn('[클라우드] 시작 시 자동 내려받기 실패', e);
+          }
           return;
         }
-        if (user) {
-          logGuestSkip('이미 로그인됨 → 게스트 병합 안 함');
+        if (!canLoadGuestDefault()) {
+          logGuestSkip('게스트 URL/UID 없음');
           return;
         }
         const guest = await fetchGuestDefaultSnapshot();
@@ -131,6 +144,34 @@ function usePersistState() {
     }, 1500);
     return () => clearInterval(t);
   }, [toSnapshot]);
+}
+
+/** 세션 중 로그인(null → 사용자) 시 클라우드 자동 내려받기 */
+function useCloudPullOnLogin() {
+  const loadState = useScrapStore((s) => s.loadSnapshot);
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+    let firstAuth = true;
+    let prevUser: User | null = null;
+    return watchAuthState((user) => {
+      if (firstAuth) {
+        firstAuth = false;
+        prevUser = user;
+        return;
+      }
+      const wasLoggedOut = prevUser === null;
+      prevUser = user;
+      if (!wasLoggedOut || user === null) return;
+      (async () => {
+        try {
+          const ok = await pullCloudMergeIntoStore(loadState);
+          if (ok) console.info('[클라우드] 로그인 후 자동 내려받기 병합 완료');
+        } catch (e) {
+          console.warn('[클라우드] 로그인 후 자동 내려받기 실패', e);
+        }
+      })();
+    });
+  }, [loadState]);
 }
 
 /** 로그아웃 시 로컬·IndexedDB에 남은 내용과 섞이지 않게 게스트 스냅샷만 다시 로드 */
@@ -457,14 +498,10 @@ function SettingsPage() {
                 className="settings-backup-btn"
                 onClick={async () => {
                   try {
-                    const cloud = await pullSnapshot();
-                    if (cloud) {
-                      const merged = mergeSnapshots(toSnapshot(), cloud);
-                      loadState(merged);
-                      setSyncNote('클라우드 병합 완료(최신 수정 우선)');
-                    } else {
-                      setSyncNote('클라우드에 저장된 데이터가 없습니다.');
-                    }
+                    const ok = await pullCloudMergeIntoStore(loadState);
+                    setSyncNote(
+                      ok ? '클라우드 병합 완료(최신 수정 우선)' : '클라우드에 저장된 데이터가 없습니다.',
+                    );
                   } catch (e) {
                     setSyncNote(e instanceof Error ? e.message : '내려받기 실패');
                   }
@@ -505,6 +542,7 @@ function AppShell() {
 
 export function App() {
   usePersistState();
+  useCloudPullOnLogin();
   useGuestReloadOnLogout();
 
   return (
