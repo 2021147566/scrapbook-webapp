@@ -1,4 +1,4 @@
-import { initializeApp, type FirebaseOptions } from 'firebase/app';
+import { FirebaseError, initializeApp, type FirebaseOptions } from 'firebase/app';
 import {
   GoogleAuthProvider,
   getAuth,
@@ -134,28 +134,66 @@ export function canLoadGuestDefault(): boolean {
   return Boolean(import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim() || guestDefaultUid());
 }
 
+const GUEST_LOG = '[게스트 일기]';
+
 export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | null> {
   const url = import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim();
   if (url) {
     try {
       const res = await fetch(url);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        console.warn(GUEST_LOG, 'VITE_PUBLIC_GUEST_SNAPSHOT_URL 요청 실패', res.status, url);
+        return null;
+      }
       const text = await res.text();
       return parsePersistedSnapshot(text);
-    } catch {
+    } catch (e) {
+      console.warn(GUEST_LOG, '스냅샷 URL fetch 실패', url, e);
       return null;
     }
   }
   const uid = guestDefaultUid();
-  if (!uid) return null;
+  if (!uid) {
+    console.warn(
+      GUEST_LOG,
+      'UID 없음 — VITE_GUEST_DEFAULT_UID 또는 src/config/guest.ts 의 GUEST_DEFAULT_UID_FALLBACK 필요',
+    );
+    return null;
+  }
+  const docPath = `scrapbooks/${uid}`;
   try {
     ensureFirebase();
     const firestore = getFirestore();
     const snapshotDoc = await getDoc(doc(firestore, 'scrapbooks', uid));
-    if (!snapshotDoc.exists()) return null;
+    if (!snapshotDoc.exists()) {
+      console.warn(
+        GUEST_LOG,
+        `문서 없음: ${docPath} — Firestore에 해당 문서를 만들고(또는 로그인 후 업로드) 필드 snapshot 을 채우세요.`,
+      );
+      return null;
+    }
     const data = snapshotDoc.data() as { snapshot?: PersistedSnapshot };
-    return data.snapshot ?? null;
-  } catch {
+    if (data.snapshot == null) {
+      console.warn(
+        GUEST_LOG,
+        `문서는 있으나 snapshot 필드가 비어 있음: ${docPath} — 필드 이름이 snapshot 인지 확인하세요.`,
+      );
+      return null;
+    }
+    return data.snapshot;
+  } catch (e) {
+    const detail =
+      e instanceof FirebaseError
+        ? `${e.code} (${e.message})`
+        : e instanceof Error
+          ? e.message
+          : String(e);
+    console.warn(
+      GUEST_LOG,
+      `Firestore 읽기 실패: ${docPath}`,
+      detail,
+      '→ 규칙에서 이 UID 읽기 허용·프로젝트 ID·규칙 게시 여부를 확인하세요.',
+    );
     return null;
   }
 }
