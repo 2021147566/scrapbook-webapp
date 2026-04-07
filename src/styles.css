@@ -170,12 +170,33 @@ a {
   padding: 28px 20px;
 }
 
+/* 전역 .settings-google-login-btn 의 align-self: flex-start 를 덮어써서 문구 바로 아래 가운데 정렬 */
+.settings--login-only .settings-google-login-btn {
+  align-self: center;
+}
+
+.settings--login-only .settings-sync-note {
+  width: 100%;
+  text-align: center;
+}
+
+.settings--login-only > .settings-hint {
+  text-align: center;
+  max-width: 420px;
+}
+
 .settings-login-lead {
-  margin: 0 0 20px;
-  max-width: 280px;
+  margin: 0 0 18px;
+  max-width: 320px;
   font-size: 15px;
   line-height: 1.55;
   color: #5b3d1e;
+}
+
+@media (min-width: 641px) {
+  .settings-login-lead {
+    max-width: 420px;
+  }
 }
 
 .settings-login-main-btn {
