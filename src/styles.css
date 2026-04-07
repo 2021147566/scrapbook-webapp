@@ -29,13 +29,44 @@ a {
 }
 
 .topbar {
-  display: grid;
-  gap: 10px;
   background: linear-gradient(165deg, #f4ead7 0%, #e6d3b0 100%);
   border: 1px solid #ccb08a;
   border-radius: 14px;
-  padding: 16px;
+  padding: 12px 16px;
   box-shadow: 0 8px 24px rgba(73, 48, 22, 0.14);
+}
+
+.topbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+
+.topbar-month strong {
+  min-width: 10.5ch;
+  text-align: center;
+  color: #4b3217;
+}
+
+.topbar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 16px;
+}
+
+.topbar-links {
+  flex-wrap: wrap;
+}
+
+.topbar-date {
+  font-size: 13px;
+  color: #6b4f2a;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
 .row {
@@ -58,9 +89,19 @@ a {
   box-shadow: 0 10px 26px rgba(67, 45, 24, 0.1);
 }
 
-.toolbar {
-  display: block;
+.calendar-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 14px;
+}
+
+.calendar-toolbar-row .upload-card {
+  flex: 1 1 260px;
+  margin: 0;
+  min-width: min(100%, 260px);
 }
 
 .upload-card {
@@ -323,6 +364,26 @@ a {
   border: 1px dashed #c5a37e;
   border-radius: 10px;
   background: rgba(255, 248, 234, 0.72);
+}
+
+.routine-control--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 0;
+  flex: 0 1 auto;
+  padding: 8px 12px;
+}
+
+.routine-inline-label {
+  font-size: 12px;
+  color: #7a6245;
+  white-space: nowrap;
+}
+
+.routine-inline-btns {
+  flex-wrap: wrap;
 }
 
 .routine-btn.active {

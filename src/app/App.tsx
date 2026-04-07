@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import 'dayjs/locale/en';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CalendarView } from '../features/calendar/CalendarView';
@@ -93,23 +94,33 @@ function Header() {
   const location = useLocation();
   return (
     <header className="topbar">
-      <div className="row">
-        <button onClick={() => setMonthCursor(dayjs(monthCursor).subtract(1, 'month').toDate())}>◀</button>
-        <strong>{dayjs(monthCursor).format('YYYY MMMM')}</strong>
-        <button onClick={() => setMonthCursor(dayjs(monthCursor).add(1, 'month').toDate())}>▶</button>
+      <div className="topbar-row">
+        <div className="topbar-month row">
+          <button type="button" onClick={() => setMonthCursor(dayjs(monthCursor).subtract(1, 'month').toDate())}>
+            ◀
+          </button>
+          <strong>{dayjs(monthCursor).locale('en').format('YYYY MMMM')}</strong>
+          <button type="button" onClick={() => setMonthCursor(dayjs(monthCursor).add(1, 'month').toDate())}>
+            ▶
+          </button>
+        </div>
+        <div className="topbar-meta">
+          <nav className="topbar-links row" aria-label="화면 전환">
+            <Link className={location.pathname === '/calendar' ? 'active' : ''} to="/calendar">
+              달력
+            </Link>
+            <Link className={location.pathname === '/book' ? 'active' : ''} to="/book">
+              책
+            </Link>
+            <Link className={location.pathname === '/settings' ? 'active' : ''} to="/settings">
+              설정
+            </Link>
+          </nav>
+          <span className="topbar-date" title={selectedDate}>
+            {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
+          </span>
+        </div>
       </div>
-      <div className="row">
-        <Link className={location.pathname === '/calendar' ? 'active' : ''} to="/calendar">
-          달력 모드
-        </Link>
-        <Link className={location.pathname === '/book' ? 'active' : ''} to="/book">
-          책 모드
-        </Link>
-        <Link className={location.pathname === '/settings' ? 'active' : ''} to="/settings">
-          설정
-        </Link>
-      </div>
-      <small>선택 날짜: {selectedDate}</small>
     </header>
   );
 }
@@ -148,7 +159,7 @@ function CalendarPage() {
 
   return (
     <div className="page">
-      <section className="toolbar">
+      <section className="calendar-toolbar-row" aria-label="사진 추가 및 루틴">
         <div className="upload-card">
           <div>
             <strong>사진 추가</strong>
@@ -167,19 +178,20 @@ function CalendarPage() {
             }}
           />
         </div>
-      </section>
-      <section className="routine-control">
-        <small>루틴 점 표시</small>
-        <div className="row">
-          {['운동', '공부', '식단'].map((label, idx) => (
-            <button
-              key={label}
-              className={routines[idx] ? `routine-btn active dot-${idx + 1}` : `routine-btn dot-${idx + 1}`}
-              onClick={() => toggleRoutine(selectedDate, idx)}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="routine-control routine-control--inline">
+          <span className="routine-inline-label">루틴</span>
+          <div className="row routine-inline-btns">
+            {['운동', '공부', '식단'].map((label, idx) => (
+              <button
+                key={label}
+                type="button"
+                className={routines[idx] ? `routine-btn active dot-${idx + 1}` : `routine-btn dot-${idx + 1}`}
+                onClick={() => toggleRoutine(selectedDate, idx)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
       <CalendarView />
