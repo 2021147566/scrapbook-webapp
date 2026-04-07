@@ -1,6 +1,6 @@
 import type { User } from 'firebase/auth';
 
-/** 편집·업로드 가능한 Google 계정 (이메일 일치 시에만) */
+/** 편집·업로드·Google 로그인 허용 계정 (다른 구글 계정은 로그인 직후 로그아웃) */
 export const OWNER_EMAIL = 'euiseo053103@gmail.com';
 
 /** 공개 스냅샷 Firestore `scrapbooks/{uid}` — env 없을 때 폴백 */

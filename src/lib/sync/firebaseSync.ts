@@ -63,6 +63,8 @@ function preferGoogleRedirect(): boolean {
   return false;
 }
 
+const NON_OWNER_LOGIN_MESSAGE = '허용된 계정만 로그인할 수 있습니다.';
+
 export async function completeGoogleRedirectIfAny(): Promise<User | null> {
   if (!isFirebaseConfigured()) return null;
   ensureFirebase();
@@ -70,6 +72,12 @@ export async function completeGoogleRedirectIfAny(): Promise<User | null> {
   try {
     const result = await getRedirectResult(auth);
     if (result?.user) {
+      if (!isOwnerEmail(result.user)) {
+        console.warn('[auth] 허용 목록에 없는 계정 — 로그아웃');
+        await signOut(auth);
+        authUser = null;
+        return null;
+      }
       authUser = result.user;
       return result.user;
     }
@@ -88,6 +96,11 @@ export async function loginWithGoogle(): Promise<User | undefined> {
     return undefined;
   }
   const result = await signInWithPopup(auth, provider);
+  if (!isOwnerEmail(result.user)) {
+    await signOut(auth);
+    authUser = null;
+    throw new Error(NON_OWNER_LOGIN_MESSAGE);
+  }
   authUser = result.user;
   return result.user;
 }
@@ -105,8 +118,17 @@ export function getCurrentUser(): User | null {
 export function watchAuthState(onChange: (user: User | null) => void): () => void {
   ensureFirebase();
   return onAuthStateChanged(getAuth(), (user) => {
-    authUser = user;
-    onChange(user);
+    void (async () => {
+      if (user && !isOwnerEmail(user)) {
+        console.warn('[auth] 허용 목록에 없는 세션 — 로그아웃');
+        await signOut(getAuth());
+        authUser = null;
+        onChange(null);
+        return;
+      }
+      authUser = user;
+      onChange(user);
+    })();
   });
 }
 
