@@ -182,9 +182,9 @@ a {
 /* 1행: 요일만 왼쪽 | 2행: 날짜칸 + 사이드바(같은 시작 y) */
 .calendar-page-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+  grid-template-columns: minmax(0, 1fr) minmax(296px, 396px);
   grid-template-rows: auto 1fr;
-  gap: 6px 12px;
+  gap: 6px 10px;
   align-items: start;
   margin-bottom: 0;
 }
@@ -460,7 +460,7 @@ a {
   flex-direction: column;
   align-items: stretch;
   min-height: 0;
-  width: 95%;
+  width: 97%;
   margin-left: auto;
   margin-right: auto;
   aspect-ratio: 1 / 1;
