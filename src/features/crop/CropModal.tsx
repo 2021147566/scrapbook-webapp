@@ -15,7 +15,7 @@ async function createCroppedImage(src: string, pixelCrop: Area): Promise<string>
     img.onerror = reject;
   });
   const TARGET_WIDTH = 800;
-  const TARGET_HEIGHT = 1000; // 4:5 고정 비율
+  const TARGET_HEIGHT = 800; // 1:1 고정 비율
 
   const canvas = document.createElement('canvas');
   canvas.width = TARGET_WIDTH;
@@ -59,7 +59,7 @@ export function CropModal({ src, onClose, onSave }: CropModalProps) {
             image={src}
             crop={crop}
             zoom={zoom}
-            aspect={4 / 5}
+            aspect={1 / 1}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
