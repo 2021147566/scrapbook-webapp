@@ -15,9 +15,9 @@ import {
   loadSnapshot,
   mergeAllMonthShardsFromIDB,
   replaceAllShardsFromSnapshot,
-  saveSnapshot,
   switchMonthShard,
 } from '../lib/storage/indexeddb';
+import { flushDirtyToIDB } from '../lib/persistScrap';
 import { mergeSnapshots } from '../lib/snapshotMerge';
 import type { User } from 'firebase/auth';
 import { isOwnerEmail, OWNER_EMAIL } from '../config/scrapbookOwner';
@@ -158,12 +158,10 @@ function useFirebaseAuthUser(): AuthState {
 }
 
 function usePersistState(auth: AuthState) {
-  const toSnapshot = useScrapStore((s) => s.toSnapshot);
   const loadState = useScrapStore((s) => s.loadSnapshot);
   const setLoadedMonthKey = useScrapStore((s) => s.setLoadedMonthKey);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
-  const loadedMonthKey = useScrapStore((s) => s.loadedMonthKey);
   const { user, ready } = auth;
   const didLoadIdb = useRef(false);
   const didMergePublicOnce = useRef(false);
@@ -226,14 +224,21 @@ function usePersistState(auth: AuthState) {
     };
   }, [ready, user, loadState, setLoadedMonthKey, setMonthCursor, setSelectedDate]);
   useEffect(() => {
-    const t = setInterval(() => {
-      const mk = useScrapStore.getState().loadedMonthKey;
-      saveSnapshot(toSnapshot(), mk).catch((error) => {
-        console.warn('IndexedDB save skipped:', error);
+    const run = () => {
+      flushDirtyToIDB().catch((error) => {
+        console.warn('IndexedDB incremental save skipped:', error);
       });
-    }, 1500);
-    return () => clearInterval(t);
-  }, [toSnapshot, loadedMonthKey]);
+    };
+    const t = setInterval(run, 3500);
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') run();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
 }
 
 /** 로그아웃 시 공개 일기만 다시 로드 */

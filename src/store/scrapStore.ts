@@ -8,6 +8,17 @@ function dayKey(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+/** 자동 저장: 변경된 날짜만 IDB에 쓰기 위해 revision 증가 */
+function touchDateState(
+  state: { dirtyDateKeys: Set<DateKey>; dateRevision: Record<DateKey, number> },
+  date: DateKey,
+) {
+  const nextD = new Set(state.dirtyDateKeys);
+  nextD.add(date);
+  const nextR = { ...state.dateRevision, [date]: (state.dateRevision[date] ?? 0) + 1 };
+  return { dirtyDateKeys: nextD, dateRevision: nextR };
+}
+
 interface ScrapState {
   monthCursor: Date;
   /** IndexedDB에 로드된 월(YYYY-MM) — 메모리에는 이 달 데이터만 유지 */
@@ -19,6 +30,11 @@ interface ScrapState {
   diaryByDate: Record<DateKey, DiaryEntry>;
   routineByDate: Record<DateKey, boolean[]>;
   routineLabels: [string, string, string];
+  /** 자동 저장용: 더티 날짜(월 샤드에 병합할 키) */
+  dirtyDateKeys: Set<DateKey>;
+  dateRevision: Record<DateKey, number>;
+  dirtyRoutineLabels: boolean;
+  routineLabelsRevision: number;
   setMonthCursor: (date: Date) => void;
   setLoadedMonthKey: (key: MonthKey) => void;
   setWeekCursor: (date: Date) => void;
@@ -48,6 +64,10 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
   diaryByDate: {},
   routineByDate: {},
   routineLabels: [...DEFAULT_ROUTINE_LABELS],
+  dirtyDateKeys: new Set(),
+  dateRevision: {},
+  dirtyRoutineLabels: false,
+  routineLabelsRevision: 0,
   setMonthCursor: (date) => set({ monthCursor: date }),
   setLoadedMonthKey: (key) => set({ loadedMonthKey: key }),
   setWeekCursor: (date) => set({ weekCursor: date }),
@@ -62,12 +82,18 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
-      return { imagesByDate: { ...state.imagesByDate, [date]: [nextImage, ...prev] } };
+      return {
+        imagesByDate: { ...state.imagesByDate, [date]: [nextImage, ...prev] },
+        ...touchDateState(state, date),
+      };
     }),
   removeImage: (date, imageId) =>
     set((state) => {
       const filtered = (state.imagesByDate[date] ?? []).filter((img) => img.id !== imageId);
-      return { imagesByDate: { ...state.imagesByDate, [date]: filtered } };
+      return {
+        imagesByDate: { ...state.imagesByDate, [date]: filtered },
+        ...touchDateState(state, date),
+      };
     }),
   moveImage: (date, fromIndex, toIndex) =>
     set((state) => {
@@ -83,14 +109,20 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
       }
       const [picked] = list.splice(fromIndex, 1);
       list.splice(toIndex, 0, { ...picked, updatedAt: Date.now() });
-      return { imagesByDate: { ...state.imagesByDate, [date]: list } };
+      return {
+        imagesByDate: { ...state.imagesByDate, [date]: list },
+        ...touchDateState(state, date),
+      };
     }),
   setImageTitle: (date, imageId, title) =>
     set((state) => {
       const list = (state.imagesByDate[date] ?? []).map((img) =>
         img.id === imageId ? { ...img, title, updatedAt: Date.now() } : img,
       );
-      return { imagesByDate: { ...state.imagesByDate, [date]: list } };
+      return {
+        imagesByDate: { ...state.imagesByDate, [date]: list },
+        ...touchDateState(state, date),
+      };
     }),
   setImageBookOffset: (date, imageId, offset) =>
     set((state) => {
@@ -102,7 +134,10 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
         }
         return { ...img, bookOffset: { x: offset.x, y: offset.y }, updatedAt: Date.now() };
       });
-      return { imagesByDate: { ...state.imagesByDate, [date]: list } };
+      return {
+        imagesByDate: { ...state.imagesByDate, [date]: list },
+        ...touchDateState(state, date),
+      };
     }),
   resetBookLayoutForDate: (date) =>
     set((state) => ({
@@ -113,21 +148,27 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
           return { ...rest, updatedAt: Date.now() };
         }),
       },
+      ...touchDateState(state, date),
     })),
   toggleRoutine: (date, routineIndex) =>
     set((state) => {
       const prev = state.routineByDate[date] ?? [false, false, false];
       const next = [...prev];
       next[routineIndex] = !next[routineIndex];
-      return { routineByDate: { ...state.routineByDate, [date]: next } };
+      return {
+        routineByDate: { ...state.routineByDate, [date]: next },
+        ...touchDateState(state, date),
+      };
     }),
   setRoutineLabels: (labels) =>
-    set(() => ({
+    set((state) => ({
       routineLabels: [
         String(labels[0] ?? '').slice(0, 20),
         String(labels[1] ?? '').slice(0, 20),
         String(labels[2] ?? '').slice(0, 20),
       ] as [string, string, string],
+      dirtyRoutineLabels: true,
+      routineLabelsRevision: state.routineLabelsRevision + 1,
     })),
   setDiary: (date, text) =>
     set((state) => ({
@@ -135,6 +176,7 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
         ...state.diaryByDate,
         [date]: { date, text, updatedAt: Date.now() },
       },
+      ...touchDateState(state, date),
     })),
   loadSnapshot: (snapshot) =>
     set({
@@ -142,6 +184,10 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
       diaryByDate: snapshot.diaryByDate ?? {},
       routineByDate: snapshot.routineByDate ?? {},
       routineLabels: normalizeRoutineLabels(snapshot.routineLabels),
+      dirtyDateKeys: new Set(),
+      dateRevision: {},
+      dirtyRoutineLabels: false,
+      routineLabelsRevision: 0,
     }),
   toSnapshot: () => {
     const state = get();

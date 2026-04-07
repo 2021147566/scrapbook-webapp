@@ -11,7 +11,7 @@ import {
   slicePersistedToMonthShard,
   splitSnapshotByMonth,
 } from '../monthShard';
-import type { PersistedSnapshot } from '../../types';
+import type { DateKey, DiaryEntry, PersistedSnapshot, ScrapImage } from '../../types';
 import { DEFAULT_ROUTINE_LABELS } from '../../types';
 import dayjs from 'dayjs';
 
@@ -167,6 +167,82 @@ export async function saveSnapshot(snapshot: PersistedSnapshot, monthKey: MonthK
     routineLabels: normalizeRoutineTriplet(snapshot.routineLabels),
     lastActiveMonthKey: monthKey,
   });
+}
+
+function applyOneDateToShard(
+  shard: MonthShard,
+  date: DateKey,
+  slice: {
+    imagesByDate: Record<DateKey, ScrapImage[]>;
+    diaryByDate: Record<DateKey, DiaryEntry>;
+    routineByDate: Record<DateKey, boolean[]>;
+  },
+): void {
+  const imgs = slice.imagesByDate[date];
+  if (imgs && imgs.length > 0) shard.imagesByDate[date] = imgs;
+  else delete shard.imagesByDate[date];
+
+  const di = slice.diaryByDate[date];
+  if (di && di.text.trim()) shard.diaryByDate[date] = di;
+  else delete shard.diaryByDate[date];
+
+  const r = slice.routineByDate[date];
+  if (r && r.some(Boolean)) shard.routineByDate[date] = r;
+  else delete shard.routineByDate[date];
+}
+
+/** 루틴 이름만 meta에 반영 (날짜 데이터 변경 없음) */
+export async function saveRoutineLabelsMeta(monthKey: MonthKey, labels: [string, string, string]): Promise<void> {
+  const meta = await loadMeta();
+  await saveMeta({
+    ...meta,
+    routineLabels: normalizeRoutineTriplet(labels),
+    lastActiveMonthKey: monthKey,
+  });
+}
+
+/**
+ * 월 샤드에 **변경된 날짜만** 병합 저장 (자동 저장 최적화)
+ */
+export async function saveMonthShardPartial(
+  monthKey: MonthKey,
+  dateKeys: DateKey[],
+  getSlice: () => {
+    imagesByDate: Record<DateKey, ScrapImage[]>;
+    diaryByDate: Record<DateKey, DiaryEntry>;
+    routineByDate: Record<DateKey, boolean[]>;
+    routineLabels: [string, string, string];
+  },
+  opts: { updateRoutineLabelsInMeta: boolean },
+): Promise<void> {
+  const database = await db();
+  await migrateLegacyIfNeeded(database);
+  const meta = await loadMeta();
+
+  let shard = (await database.get(STORE_NAME, monthStorageKey(monthKey))) as MonthShard | undefined;
+  if (!shard) {
+    shard = { imagesByDate: {}, diaryByDate: {}, routineByDate: {}, updatedAt: Date.now() };
+  }
+
+  const slice = getSlice();
+
+  for (const d of dateKeys) {
+    if (d.slice(0, 7) !== monthKey) continue;
+    applyOneDateToShard(shard, d, slice);
+  }
+
+  shard.updatedAt = Date.now();
+  await database.put(STORE_NAME, shard, monthStorageKey(monthKey));
+
+  if (opts.updateRoutineLabelsInMeta) {
+    await saveMeta({
+      ...meta,
+      routineLabels: normalizeRoutineTriplet(slice.routineLabels),
+      lastActiveMonthKey: monthKey,
+    });
+  } else {
+    await saveMeta({ ...meta, lastActiveMonthKey: monthKey });
+  }
 }
 
 export async function exportSnapshot(snapshot: PersistedSnapshot): Promise<string> {
