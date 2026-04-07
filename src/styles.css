@@ -929,14 +929,20 @@ button:hover {
 }
 
 .book-collage-wrap {
-  /* 기준 대비 95% */
-  --book-polaroid-size: min(264px, 45.6vmin, 55.1vw);
+  /* 이전(95% 기준) 대비 1.5배 */
+  --book-polaroid-size: min(396px, 68.4vmin, 82.65vw);
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+/* 큰 폴라로이드가 스테이지 max-width에 잘리지 않도록 */
+.book-collage-wrap .book-film-stage,
+.book-collage-wrap .book-film-stage--vertical {
+  max-width: min(100%, 440px);
 }
 
 .book-empty-day {
@@ -1049,7 +1055,7 @@ button:hover {
 
 /* 아래 프레임을 위로 겹쳐 세로 스택 */
 .book-film-stage--vertical .film-frame:not(:first-child) {
-  margin-top: -72px;
+  margin-top: -108px;
 }
 
 /* 2~3장: 홀/짝 좌우 스태거 */
@@ -1066,7 +1072,7 @@ button:hover {
 }
 
 .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
-  margin-top: -78px;
+  margin-top: -117px;
 }
 
 .book-film-stage--vertical .film-frame {
@@ -1113,11 +1119,11 @@ button:hover {
 }
 
 .book-collage-wrap .book-film-stage--vertical .film-frame:not(:first-child) {
-  margin-top: -118px;
+  margin-top: -177px;
 }
 
 .book-collage-wrap .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
-  margin-top: -126px;
+  margin-top: -189px;
 }
 
 .book-collage-wrap .book-film-stage .film-frame-mat {
