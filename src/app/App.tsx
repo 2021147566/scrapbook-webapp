@@ -415,7 +415,7 @@ function SettingsPage() {
         ) : (
           <>
             <p className="settings-login-lead">
-              소유자({OWNER_EMAIL})로 로그인하면 편집·업로드·동기화를 사용할 수 있어요.
+              소유자({OWNER_EMAIL})만 편집할 수 있어용 일기쓰고 싶으면 문의주세요~
             </p>
             <button
               type="button"
