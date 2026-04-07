@@ -178,9 +178,19 @@ a {
 .settings-backup-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: stretch;
   margin-bottom: 4px;
+  max-width: 100%;
+}
+
+.settings-backup-row .settings-backup-btn {
+  flex: 0 1 24%;
+  max-width: 180px;
+  min-width: 96px;
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 14px;
 }
 
 .settings-backup-btn {
@@ -230,17 +240,34 @@ a {
 }
 
 .settings-firebase-row .settings-backup-btn {
-  flex: 1 1 120px;
+  flex: 0 1 24%;
+  max-width: 180px;
+  min-width: 96px;
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 14px;
 }
 
-.settings-firebase-primary {
+.settings-google-login-btn {
+  flex: 0 0 auto !important;
+  max-width: 220px !important;
+  min-width: 140px;
+  min-height: 34px !important;
+  padding: 6px 14px !important;
+  font-size: 14px;
   font-weight: 600;
-  max-width: 320px;
+  align-self: flex-start;
 }
 
 .settings-firebase-logout {
   border-color: #c49a7a;
   background: linear-gradient(180deg, #faf6f0 0%, #e8d4c4 100%);
+  flex: 0 1 24%;
+  max-width: 180px;
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 14px;
+  align-self: flex-start;
 }
 
 .settings-auto-sync {
@@ -263,23 +290,25 @@ a {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 12px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(107, 85, 56, 0.22);
+  gap: 6px 10px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(107, 85, 56, 0.2);
+  min-height: 0;
 }
 
 .topbar-guest-title {
   font-weight: 700;
   color: #4b3217;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.25;
 }
 
 .topbar-guest-cta {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #5b3d1e;
-  padding: 6px 14px;
+  padding: 4px 12px;
   border-radius: 999px;
   border: 1px solid #c4b49a;
   background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
@@ -1215,8 +1244,8 @@ button:hover {
 }
 
 .book-collage-wrap {
-  /* 이전(95% 기준) 대비 1.5배 */
-  --book-polaroid-size: min(396px, 68.4vmin, 82.65vw);
+  /* 기존 대비 약 80% */
+  --book-polaroid-size: min(calc(396px * 0.8), calc(68.4vmin * 0.8), calc(82.65vw * 0.8));
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -1228,7 +1257,7 @@ button:hover {
 /* 큰 폴라로이드가 스테이지 max-width에 잘리지 않도록 */
 .book-collage-wrap .book-film-stage,
 .book-collage-wrap .book-film-stage--vertical {
-  max-width: min(100%, 440px);
+  max-width: min(100%, calc(440px * 0.8));
 }
 
 .book-empty-day {
@@ -1405,11 +1434,11 @@ button:hover {
 }
 
 .book-collage-wrap .book-film-stage--vertical .film-frame:not(:first-child) {
-  margin-top: -177px;
+  margin-top: calc(-177px * 0.8);
 }
 
 .book-collage-wrap .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
-  margin-top: -189px;
+  margin-top: calc(-189px * 0.8);
 }
 
 .book-collage-wrap .book-film-stage .film-frame-mat {
@@ -1435,7 +1464,7 @@ button:hover {
   padding: 0 4px;
   max-width: var(--book-polaroid-size);
   box-sizing: border-box;
-  font-size: 16px;
+  font-size: calc(16px * 0.8);
   font-weight: 600;
   color: #3d3428;
   text-align: center;

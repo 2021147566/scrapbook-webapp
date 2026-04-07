@@ -91,6 +91,16 @@ function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): Per
   };
 }
 
+/** 로그인 시 상단 제목: 구글 표시 이름, 없으면 이메일 @ 앞 */
+function diaryTitleForUser(user: User | null): string {
+  if (!user) return '의서의 일기';
+  const name = user.displayName?.trim();
+  if (name) return `${name}의 일기`;
+  const local = (user.email ?? '').split('@')[0]?.trim();
+  if (local) return `${local}의 일기`;
+  return '내 일기';
+}
+
 function useFirebaseAuthUser(): User | null {
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
@@ -169,15 +179,13 @@ function Header() {
           </nav>
         </div>
       </div>
-      <div className="topbar-guest-row" aria-label="게스트 안내">
-        <span className="topbar-guest-title">의서의 일기</span>
+      <div className="topbar-guest-row" aria-label="일기 주인">
+        <span className="topbar-guest-title">{diaryTitleForUser(authUser)}</span>
         {!authUser ? (
           <Link className="topbar-guest-cta" to="/settings">
             나도 일기 쓰기
           </Link>
-        ) : (
-          <span className="topbar-guest-logged">{authUser.email ?? '로그인됨'}</span>
-        )}
+        ) : null}
       </div>
     </header>
   );
@@ -375,7 +383,7 @@ function SettingsPage() {
             {!authUser ? (
               <button
                 type="button"
-                className="settings-backup-btn settings-firebase-primary"
+                className="settings-backup-btn settings-google-login-btn"
                 disabled={!hasFirebase}
                 onClick={async () => {
                   try {
