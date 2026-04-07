@@ -248,12 +248,12 @@ a {
 }
 
 .photo-stack--multi .stack-image-back.layer-far {
-  transform: rotate(-11deg) scale(0.92) translate(-6px, 12px);
+  transform: rotate(-11deg) scale(0.85) translate(-6px, 12px);
   opacity: 0.62;
 }
 
 .photo-stack--multi .stack-image-back.layer-mid {
-  transform: rotate(9deg) scale(0.96) translate(8px, 6px);
+  transform: rotate(9deg) scale(0.85) translate(8px, 6px);
   opacity: 0.55;
 }
 
