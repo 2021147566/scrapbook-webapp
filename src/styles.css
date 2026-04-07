@@ -296,8 +296,8 @@ a {
 }
 
 .calendar-sidebar-routine-btns {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -717,8 +717,12 @@ a {
 
 /* 달력 오른쪽 바 루틴: 연한 빈티지 톤 */
 .calendar-sidebar-routine .routine-btn--sidebar {
-  font-size: 14px;
-  padding: 10px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 13px;
+  padding: 8px 6px;
+  text-align: center;
+  line-height: 1.25;
   background: linear-gradient(180deg, #fdf9f2 0%, #ebe3d4 100%);
   color: #4f4334;
   box-shadow: 0 1px 0 rgba(95, 66, 32, 0.1);
