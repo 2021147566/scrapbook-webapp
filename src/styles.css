@@ -58,6 +58,17 @@ a {
   gap: 10px 16px;
 }
 
+.topbar-today {
+  font-size: 12px;
+  color: #5c4a32;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid #c4b49a;
+  background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
 .topbar-links {
   flex-wrap: wrap;
 }
@@ -131,34 +142,60 @@ a {
   padding-top: 12px;
 }
 
+/* 1행: 요일만 왼쪽 | 2행: 날짜칸 + 사이드바(같은 시작 y) */
 .calendar-page-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(252px, 300px);
-  gap: 14px;
+  grid-template-rows: auto 1fr;
+  gap: 8px 14px;
   align-items: start;
   margin-bottom: 16px;
 }
 
-@media (max-width: 960px) {
-  .calendar-page-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .calendar-sidebar {
-    max-width: 420px;
-  }
+.calendar-weekdays {
+  grid-column: 1;
+  grid-row: 1;
 }
 
-.calendar-main-col {
+.calendar-grid {
+  grid-column: 1;
+  grid-row: 2;
   min-width: 0;
 }
 
 .calendar-sidebar {
+  grid-column: 2;
+  grid-row: 2;
   display: flex;
   flex-direction: column;
   gap: 12px;
   position: sticky;
   top: 12px;
+  align-self: start;
+}
+
+@media (max-width: 960px) {
+  .calendar-page-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .calendar-weekdays {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .calendar-grid {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .calendar-sidebar {
+    grid-column: 1;
+    grid-row: 3;
+    position: static;
+    max-width: 420px;
+  }
 }
 
 .calendar-sidebar-card {
@@ -340,14 +377,14 @@ a {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
-  grid-auto-rows: minmax(min-content, auto);
+  grid-auto-rows: auto;
 }
 
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
-  margin: 0 0 6px;
+  margin: 0;
 }
 
 .calendar-weekday {
@@ -361,12 +398,29 @@ a {
   flex-direction: column;
   align-items: stretch;
   min-height: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   border: 1px solid #dcc6a8;
   border-radius: 6px;
-  padding: 4px 5px 6px;
+  padding: 4px 5px 5px;
   text-align: left;
   background: #fff8eb;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.calendar-cell.today {
+  border-color: #9aaa8c;
+  background: linear-gradient(165deg, #fcfbf6 0%, #eef0e6 100%);
+  box-shadow: inset 0 0 0 1px rgba(154, 170, 140, 0.35);
+}
+
+.calendar-cell-more {
+  font-size: 9px;
+  color: #8a794e;
+  text-align: center;
+  margin-top: auto;
+  padding-top: 2px;
+  line-height: 1.15;
 }
 
 .calendar-cell.muted {
@@ -379,7 +433,15 @@ a {
 }
 
 .calendar-cell.selected {
-  border-color: #6366f1;
+  border-color: #9b8ab8;
+  box-shadow: 0 0 0 2px rgba(155, 138, 184, 0.28);
+}
+
+.calendar-cell.today.selected {
+  border-color: #8a7aa8;
+  box-shadow:
+    0 0 0 2px rgba(138, 122, 168, 0.3),
+    inset 0 0 0 1px rgba(154, 170, 140, 0.25);
 }
 
 .day-number {
@@ -432,18 +494,15 @@ a {
 
 .stack-preview {
   position: relative;
-  margin-top: 4px;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  max-height: 88px;
-  max-width: 88px;
-  margin-left: auto;
-  margin-right: auto;
-  flex: 0 0 auto;
+  margin-top: 3px;
 }
 
 .photo-stack {
-  position: relative;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -593,6 +652,32 @@ a {
 
 .routine-btn.active.dot-3 {
   background: #f97316;
+}
+
+/* 달력 오른쪽 바 루틴: 연한 빈티지 톤 */
+.calendar-sidebar-routine .routine-btn--sidebar {
+  background: linear-gradient(180deg, #fdf9f2 0%, #ebe3d4 100%);
+  color: #4f4334;
+  box-shadow: 0 1px 0 rgba(95, 66, 32, 0.1);
+}
+
+.calendar-sidebar-routine .routine-btn--sidebar.active {
+  color: #3d3a34;
+}
+
+.calendar-sidebar-routine .routine-btn--sidebar.active.dot-1 {
+  background: linear-gradient(180deg, rgba(180, 195, 218, 0.55) 0%, rgba(150, 168, 198, 0.45) 100%);
+  border-color: #a8b4c8;
+}
+
+.calendar-sidebar-routine .routine-btn--sidebar.active.dot-2 {
+  background: linear-gradient(180deg, rgba(178, 202, 176, 0.5) 0%, rgba(148, 178, 152, 0.42) 100%);
+  border-color: #a4b8a2;
+}
+
+.calendar-sidebar-routine .routine-btn--sidebar.active.dot-3 {
+  background: linear-gradient(180deg, rgba(228, 198, 168, 0.55) 0%, rgba(210, 176, 148, 0.45) 100%);
+  border-color: #c9ae94;
 }
 
 .topbar button,

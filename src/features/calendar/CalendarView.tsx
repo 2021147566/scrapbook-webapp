@@ -9,7 +9,9 @@ function buildMonthDays(cursor: Date): dayjs.Dayjs[] {
   return Array.from({ length: start.daysInMonth() }, (_, i) => start.add(i, 'day'));
 }
 
-export function CalendarView() {
+const weekLabels = ['일', '월', '화', '수', '목', '금', '토'];
+
+function useCalendarMonthData() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
@@ -20,29 +22,66 @@ export function CalendarView() {
   const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
   const monthDays = useMemo(() => buildMonthDays(monthCursor), [monthCursor]);
   const leadingBlanks = dayjs(monthCursor).startOf('month').day();
-  const weekLabels = ['일', '월', '화', '수', '목', '금', '토'];
+  const todayKey = dayjs().format('YYYY-MM-DD');
+
+  return {
+    monthDays,
+    leadingBlanks,
+    selectedDate,
+    imagesByDate,
+    routineByDate,
+    routineNames,
+    setSelectedDate,
+    toggleRoutine,
+    todayKey,
+  };
+}
+
+/** 달력 상단 요일 줄 (레이아웃 그리드 1행) */
+export function CalendarWeekdayHeader() {
+  return (
+    <div className="calendar-weekdays" aria-hidden>
+      {weekLabels.map((label) => (
+        <span key={label} className="calendar-weekday">
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** 달력 날짜 칸 (레이아웃 그리드 2행, 사이드바와 같은 행 시작) */
+export function CalendarDateGrid() {
+  const {
+    monthDays,
+    leadingBlanks,
+    selectedDate,
+    imagesByDate,
+    routineByDate,
+    routineNames,
+    setSelectedDate,
+    toggleRoutine,
+    todayKey,
+  } = useCalendarMonthData();
 
   return (
-    <>
-      <div className="calendar-weekdays" aria-hidden>
-        {weekLabels.map((label) => (
-          <span key={label} className="calendar-weekday">
-            {label}
-          </span>
-        ))}
-      </div>
-      <div className="calendar-grid">
-        {Array.from({ length: leadingBlanks }).map((_, i) => (
-          <div key={`blank-${i}`} className="calendar-cell calendar-cell--empty" aria-hidden />
-        ))}
-        {monthDays.map((day) => {
+    <div className="calendar-grid">
+      {Array.from({ length: leadingBlanks }).map((_, i) => (
+        <div key={`blank-${i}`} className="calendar-cell calendar-cell--empty" aria-hidden />
+      ))}
+      {monthDays.map((day) => {
         const key = day.format('YYYY-MM-DD');
         const items = imagesByDate[key] ?? [];
         const routines = routineByDate[key] ?? [false, false, false];
+        const isToday = key === todayKey;
         return (
           <button
             key={key}
-            className={clsx('calendar-cell', { selected: key === selectedDate })}
+            type="button"
+            className={clsx('calendar-cell', {
+              selected: key === selectedDate,
+              today: isToday,
+            })}
             onClick={() => setSelectedDate(key)}
           >
             <div className="day-header">
@@ -93,11 +132,20 @@ export function CalendarView() {
                 </div>
               ) : null}
             </div>
-            {items.length > 1 && <small>+{items.length - 1}</small>}
+            {items.length > 1 && <small className="calendar-cell-more">+{items.length - 1}</small>}
           </button>
         );
-        })}
-      </div>
+      })}
+    </div>
+  );
+}
+
+/** 하위 호환: 한 번에 쓸 때 */
+export function CalendarView() {
+  return (
+    <>
+      <CalendarWeekdayHeader />
+      <CalendarDateGrid />
     </>
   );
 }

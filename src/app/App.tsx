@@ -3,7 +3,7 @@ import 'dayjs/locale/en';
 import 'dayjs/locale/ko';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { CalendarView } from '../features/calendar/CalendarView';
+import { CalendarDateGrid, CalendarWeekdayHeader } from '../features/calendar/CalendarView';
 import { CropModal } from '../features/crop/CropModal';
 import { BookView } from '../features/book/BookView';
 import { importSnapshot, loadSnapshot, saveSnapshot } from '../lib/storage/indexeddb';
@@ -118,6 +118,11 @@ function Header() {
           </button>
         </div>
         <div className="topbar-meta">
+          {location.pathname === '/calendar' ? (
+            <span className="topbar-today" title={dayjs().format('YYYY-MM-DD')}>
+              오늘 {dayjs().locale('ko').format('M/D ddd')}
+            </span>
+          ) : null}
           <nav className="topbar-links row" aria-label="화면 전환">
             <Link className={location.pathname === '/calendar' ? 'active' : ''} to="/calendar">
               달력
@@ -192,9 +197,8 @@ function CalendarPage() {
   return (
     <div className="page page--calendar">
       <div className="calendar-page-layout">
-        <div className="calendar-main-col">
-          <CalendarView />
-        </div>
+        <CalendarWeekdayHeader />
+        <CalendarDateGrid />
         <aside className="calendar-sidebar" aria-label="선택 날짜·업로드·루틴">
           <div className="calendar-sidebar-card calendar-sidebar-datecard">
             <span className="calendar-sidebar-date-label">선택한 날</span>
@@ -230,7 +234,11 @@ function CalendarPage() {
                 <button
                   key={`${idx}-${label}`}
                   type="button"
-                  className={routines[idx] ? `routine-btn active dot-${idx + 1}` : `routine-btn dot-${idx + 1}`}
+                  className={
+                    routines[idx]
+                      ? `routine-btn routine-btn--sidebar active dot-${idx + 1}`
+                      : `routine-btn routine-btn--sidebar dot-${idx + 1}`
+                  }
                   onClick={() => toggleRoutine(selectedDate, idx)}
                 >
                   {label}
