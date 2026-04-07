@@ -182,8 +182,14 @@ async function fetchGuestSnapshotFromStorage(uid: string): Promise<PersistedSnap
           : String(e);
     console.warn(
       GUEST_LOG,
-      'Storage snapshot.json 읽기 실패(비로그인 읽기 규칙·파일 경로 확인)',
+      'Storage snapshot.json 읽기 실패(규칙·경로·CORS)',
       detail,
+    );
+    console.warn(
+      GUEST_LOG,
+      'GitHub Pages 등 다른 도메인에서 Storage를 열면 GCS 버킷에 CORS를 등록해야 합니다. 레포 루트 storage-cors.json 참고 후:',
+      'gsutil cors set storage-cors.json gs://<프로젝트>-default-bucket.appspot.com',
+      '(버킷 이름은 Firebase Console → Storage → 파일 탭 상단 또는 gcloud storage buckets list 로 확인)',
     );
     return null;
   }

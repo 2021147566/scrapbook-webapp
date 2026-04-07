@@ -7,6 +7,12 @@
 // - 다른 사람 경로: 접근 불가
 //
 // UID는 src/config/guest.ts 의 GUEST_DEFAULT_UID_FALLBACK 과 반드시 동일해야 함.
+//
+// ★ CORS (GitHub Pages에서 snapshot.json 읽을 때 필수)
+// 브라우저는 Storage REST에 Origin 헤더를 보냅니다. 버킷에 CORS가 없으면
+// "blocked by CORS policy" 가 납니다. 레포 루트 storage-cors.json 을 적용:
+//   gsutil cors set storage-cors.json gs://<버킷이름>.appspot.com
+// 또는 Google Cloud Console → Cloud Storage → 해당 버킷 → CORS 편집
 // =============================================================================
 
 rules_version = '2';

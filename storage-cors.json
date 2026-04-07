@@ -1,0 +1,14 @@
+[
+  {
+    "origin": ["https://2021147566.github.io"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "x-goog-resumable", "x-goog-meta-*"]
+  },
+  {
+    "origin": ["http://localhost:5173", "http://localhost:4173", "http://127.0.0.1:5173"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "x-goog-resumable", "x-goog-meta-*"]
+  }
+]
