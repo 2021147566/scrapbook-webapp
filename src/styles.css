@@ -612,10 +612,11 @@ a {
   gap: 10px;
 }
 
-/* 달력 오른쪽 바: 이 날 사진(한 열) */
+/* 달력 오른쪽 바: 이 날 사진 2열 */
 .selected-grid--sidebar {
-  grid-template-columns: 1fr;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .calendar-sidebar-empty-photos {
@@ -630,9 +631,14 @@ a {
   padding: 8px 10px;
 }
 
+.calendar-sidebar-selected .image-card-actions {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
 .calendar-sidebar-selected .image-card-actions button {
-  font-size: 13px;
-  padding: 8px 10px;
+  font-size: 12px;
+  padding: 7px 8px;
 }
 
 .image-card img {

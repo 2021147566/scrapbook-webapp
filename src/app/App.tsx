@@ -191,7 +191,7 @@ function CalendarPage() {
       <div className="calendar-page-layout">
         <CalendarWeekdayHeader />
         <CalendarDateGrid />
-        <aside className="calendar-sidebar" aria-label="선택 날짜·업로드·루틴">
+        <aside className="calendar-sidebar" aria-label="선택 날짜·업로드·루틴·사진">
           <div className="calendar-sidebar-card calendar-sidebar-datecard">
             <span className="calendar-sidebar-date-label">선택한 날</span>
             <time className="calendar-sidebar-date-main" dateTime={selectedDate}>
@@ -217,44 +217,6 @@ function CalendarPage() {
                 e.currentTarget.value = '';
               }}
             />
-          </div>
-
-          <div className="calendar-sidebar-card calendar-sidebar-selected">
-            <h3 className="calendar-sidebar-section-title">이 날 사진</h3>
-            <div className="selected-grid selected-grid--sidebar">
-              {images.map((img, index) => (
-                <article
-                  key={img.id}
-                  className="image-card"
-                  draggable
-                  onDragStart={() => setDragIndex(index)}
-                  onDragEnd={() => setDragIndex(null)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => {
-                    if (dragIndex === null) return;
-                    moveImage(selectedDate, dragIndex, index);
-                    setDragIndex(null);
-                  }}
-                >
-                  <img src={img.dataUrl} alt="" />
-                  <input
-                    className="image-title-input"
-                    value={img.title ?? ''}
-                    onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
-                    placeholder="사진 이름"
-                  />
-                  <div className="image-card-actions">
-                    <button type="button" onClick={() => removeImage(selectedDate, img.id)}>
-                      삭제
-                    </button>
-                    <button type="button" disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
-                      대표
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {images.length === 0 ? <p className="calendar-sidebar-empty-photos">아직 사진이 없어요.</p> : null}
           </div>
 
           <div className="calendar-sidebar-card calendar-sidebar-routine">
@@ -300,6 +262,44 @@ function CalendarPage() {
                 );
               })}
             </ul>
+          </div>
+
+          <div className="calendar-sidebar-card calendar-sidebar-selected">
+            <h3 className="calendar-sidebar-section-title">이 날 사진</h3>
+            <div className="selected-grid selected-grid--sidebar">
+              {images.map((img, index) => (
+                <article
+                  key={img.id}
+                  className="image-card"
+                  draggable
+                  onDragStart={() => setDragIndex(index)}
+                  onDragEnd={() => setDragIndex(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (dragIndex === null) return;
+                    moveImage(selectedDate, dragIndex, index);
+                    setDragIndex(null);
+                  }}
+                >
+                  <img src={img.dataUrl} alt="" />
+                  <input
+                    className="image-title-input"
+                    value={img.title ?? ''}
+                    onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
+                    placeholder="사진 이름"
+                  />
+                  <div className="image-card-actions">
+                    <button type="button" onClick={() => removeImage(selectedDate, img.id)}>
+                      삭제
+                    </button>
+                    <button type="button" disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
+                      대표
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            {images.length === 0 ? <p className="calendar-sidebar-empty-photos">아직 사진이 없어요.</p> : null}
           </div>
         </aside>
       </div>
