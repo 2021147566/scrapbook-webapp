@@ -849,6 +849,7 @@ button:hover {
 }
 
 .book-collage-wrap {
+  --book-polaroid-size: min(248px, 44vmin, 52vw);
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -949,11 +950,11 @@ button:hover {
   flex: 0 1 auto;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-start;
   gap: 0;
   width: 100%;
-  max-width: 300px;
+  max-width: min(100%, 380px);
   padding: 4px 0 8px;
   box-sizing: border-box;
 }
@@ -1017,19 +1018,58 @@ button:hover {
   border: none;
 }
 
-/* 책 모드 필름: 세로 공간 절약(드래그로 배치 가능) */
-.book-collage-wrap .book-film-stage--vertical .film-frame-mat img {
-  max-width: min(112px, 26vw);
-  width: 100%;
-  margin: 0 auto;
+/* 책 모드: 폴라로이드 — 정사각형 사진 + 테두리는 하단만 두껍게 */
+.book-collage-wrap .book-film-stage--vertical .film-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 9px 9px 24px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.book-collage-wrap .book-film-stage--vertical .film-frame:not(:first-child) {
+  margin-top: -118px;
+}
+
+.book-collage-wrap .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
+  margin-top: -126px;
+}
+
+.book-collage-wrap .book-film-stage .film-frame-mat {
+  width: var(--book-polaroid-size);
+  max-width: 100%;
   aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 1px;
+}
+
+.book-collage-wrap .book-film-stage .film-frame-mat img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
   object-fit: cover;
+  display: block;
 }
 
 .book-collage-wrap .film-caption {
-  margin-top: 2px;
-  font-size: 11px;
+  margin-top: 6px;
+  margin-bottom: 0;
+  padding: 0 2px;
+  max-width: var(--book-polaroid-size);
+  box-sizing: border-box;
+  font-size: 12px;
   font-weight: 600;
+  color: #4a4034;
+  text-align: center;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .diary-panel textarea {
