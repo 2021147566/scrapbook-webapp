@@ -319,7 +319,7 @@ function Header() {
           <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(-1)} aria-label="이전 달">
             ◀
           </button>
-          <strong>{dayjs(monthCursor).locale('ko').format('YYYY년 M월')}</strong>
+          <strong>{dayjs(monthCursor).format('YYYY.MM')}</strong>
           <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(1)} aria-label="다음 달">
             ▶
           </button>

@@ -82,10 +82,11 @@ a {
 }
 
 .topbar-month strong {
-  min-width: 8.5ch;
+  min-width: 7ch;
   text-align: center;
   color: #4b3217;
   font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .topbar .topbar-month button {
@@ -123,6 +124,26 @@ a {
 
 .topbar-links a.active {
   color: #3d2912;
+}
+
+/* 모바일·좁은 화면: 상단 제목·월 화살표 축소 */
+@media (max-width: 960px) {
+  .topbar-brand {
+    font-size: 10px;
+    max-width: min(36vw, 7rem);
+  }
+
+  .topbar-month strong {
+    font-size: 0.75rem;
+    min-width: 6.25ch;
+  }
+
+  .topbar .topbar-month button {
+    padding: 1px 5px;
+    font-size: 9px;
+    border-radius: 4px;
+    line-height: 1.15;
+  }
 }
 
 .row {
@@ -1921,11 +1942,6 @@ button:hover {
     width: 100%;
     max-width: none !important;
     min-height: 52px !important;
-  }
-
-  .topbar-brand {
-    font-size: 13px;
-    max-width: min(46vw, 10rem);
   }
 
   .topbar-logout-link {
