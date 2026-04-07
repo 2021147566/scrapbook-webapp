@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CropModal } from '../crop/CropModal';
+import { useReadOnly } from '../../context/ReadOnlyContext';
 import { readFileAsDataUrl } from '../../lib/readFile';
 import { useScrapStore } from '../../store/scrapStore';
 import type { ScrapImage } from '../../types';
@@ -9,6 +10,7 @@ import { effectiveRoutineLabels } from '../../types';
 const EMPTY_IMAGES: ScrapImage[] = [];
 
 export function CalendarSidebar() {
+  const readOnly = useReadOnly();
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
@@ -47,6 +49,7 @@ export function CalendarSidebar() {
   };
 
   useEffect(() => {
+    if (readOnly) return;
     const onPaste = async (event: ClipboardEvent) => {
       const file = Array.from(event.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'));
       if (!file) return;
@@ -55,11 +58,11 @@ export function CalendarSidebar() {
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-  }, []);
+  }, [readOnly]);
 
   return (
     <>
-      <aside className="calendar-sidebar" aria-label="선택 날짜·업로드·루틴·사진">
+      <aside className={`calendar-sidebar${readOnly ? ' calendar-sidebar--readonly' : ''}`} aria-label="선택 날짜·업로드·루틴·사진">
         <div className="calendar-sidebar-card calendar-sidebar-datecard">
           <span className="calendar-sidebar-date-label">선택한 날</span>
           <time className="calendar-sidebar-date-main" dateTime={selectedDate}>
@@ -73,15 +76,21 @@ export function CalendarSidebar() {
         <div className="calendar-sidebar-card calendar-sidebar-upload">
           <div className="calendar-sidebar-upload-head">
             <strong>사진 추가</strong>
-            <small>Ctrl+V 붙여넣기</small>
+            <small>{readOnly ? '보기 전용' : 'Ctrl+V 붙여넣기'}</small>
           </div>
-          <button type="button" className="calendar-sidebar-upload-btn" onClick={() => fileInputRef.current?.click()}>
+          <button
+            type="button"
+            className="calendar-sidebar-upload-btn"
+            disabled={readOnly}
+            onClick={() => fileInputRef.current?.click()}
+          >
             이미지 선택
           </button>
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            disabled={readOnly}
             onChange={(e) => {
               onFiles(e.target.files);
               e.currentTarget.value = '';
@@ -101,7 +110,10 @@ export function CalendarSidebar() {
                     ? `routine-btn routine-btn--sidebar active dot-${idx + 1}`
                     : `routine-btn routine-btn--sidebar dot-${idx + 1}`
                 }
-                onClick={() => toggleRoutine(selectedDate, idx)}
+                disabled={readOnly}
+                onClick={() => {
+                  if (!readOnly) toggleRoutine(selectedDate, idx);
+                }}
               >
                 {label}
               </button>
@@ -141,12 +153,14 @@ export function CalendarSidebar() {
               <article
                 key={img.id}
                 className="image-card"
-                draggable
-                onDragStart={() => setDragIndex(index)}
+                draggable={!readOnly}
+                onDragStart={() => {
+                  if (!readOnly) setDragIndex(index);
+                }}
                 onDragEnd={() => setDragIndex(null)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => {
-                  if (dragIndex === null) return;
+                  if (readOnly || dragIndex === null) return;
                   moveImage(selectedDate, dragIndex, index);
                   setDragIndex(null);
                 }}
@@ -155,14 +169,19 @@ export function CalendarSidebar() {
                 <input
                   className="image-title-input"
                   value={img.title ?? ''}
+                  readOnly={readOnly}
                   onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
                   placeholder="사진 이름"
                 />
                 <div className="image-card-actions">
-                  <button type="button" onClick={() => removeImage(selectedDate, img.id)}>
+                  <button type="button" disabled={readOnly} onClick={() => removeImage(selectedDate, img.id)}>
                     삭제
                   </button>
-                  <button type="button" disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
+                  <button
+                    type="button"
+                    disabled={readOnly || index === 0}
+                    onClick={() => moveImage(selectedDate, index, 0)}
+                  >
                     대표
                   </button>
                 </div>
@@ -172,7 +191,7 @@ export function CalendarSidebar() {
           {images.length === 0 ? <p className="calendar-sidebar-empty-photos">아직 사진이 없어요.</p> : null}
         </div>
       </aside>
-      {pending ? (
+      {!readOnly && pending ? (
         <CropModal
           src={pending}
           onClose={() => setPending(null)}

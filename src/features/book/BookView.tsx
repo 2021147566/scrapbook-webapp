@@ -1,10 +1,12 @@
 import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
+import { useReadOnly } from '../../context/ReadOnlyContext';
 import { useScrapStore } from '../../store/scrapStore';
 import { DiaryPanel } from '../diary/DiaryPanel';
 import { BookFilmCollage } from './BookFilmCollage';
 
 export function BookView() {
+  const readOnly = useReadOnly();
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
   const resetBookLayoutForDate = useScrapStore((s) => s.resetBookLayoutForDate);
   const dates = useMemo(
@@ -30,7 +32,7 @@ export function BookView() {
               </header>
               {currentImages.length > 0 ? (
                 <div className="book-photo-stage">
-                  <p className="book-drag-hint">드래그로 위치 조정</p>
+                  <p className="book-drag-hint">{readOnly ? '보기 전용' : '드래그로 위치 조정'}</p>
                   <div className="book-collage-wrap">
                     <BookFilmCollage dateKey={currentDate} images={currentImages} />
                   </div>
@@ -54,7 +56,7 @@ export function BookView() {
                     <span className="book-toolbar-meta" aria-live="polite">
                       사진 {currentImages.length}장
                     </span>
-                    <button type="button" onClick={() => resetBookLayoutForDate(currentDate)}>
+                    <button type="button" disabled={readOnly} onClick={() => resetBookLayoutForDate(currentDate)}>
                       위치 초기화
                     </button>
                   </>

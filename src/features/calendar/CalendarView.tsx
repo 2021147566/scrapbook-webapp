@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { useMemo } from 'react';
 import clsx from 'clsx';
+import { useReadOnly } from '../../context/ReadOnlyContext';
 import { useScrapStore } from '../../store/scrapStore';
 import { effectiveRoutineLabels } from '../../types';
 
@@ -58,6 +59,7 @@ export function CalendarWeekdayHeader() {
 
 /** 달력 날짜 칸 (레이아웃 그리드 2행, 사이드바와 같은 행 시작) */
 export function CalendarDateGrid() {
+  const readOnly = useReadOnly();
   const {
     monthDays,
     leadingBlanks,
@@ -101,9 +103,10 @@ export function CalendarDateGrid() {
                     tabIndex={0}
                     onClick={(event) => {
                       event.stopPropagation();
-                      toggleRoutine(key, i);
+                      if (!readOnly) toggleRoutine(key, i);
                     }}
                     onKeyDown={(event) => {
+                      if (readOnly) return;
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
                         event.stopPropagation();
@@ -172,6 +175,7 @@ function useWeekCalendarData() {
 
 /** 모바일 주간 뷰: 이번 주 7칸만 */
 export function CalendarWeekGrid() {
+  const readOnly = useReadOnly();
   const {
     weekDays,
     selectedDate,
@@ -211,9 +215,10 @@ export function CalendarWeekGrid() {
                     tabIndex={0}
                     onClick={(event) => {
                       event.stopPropagation();
-                      toggleRoutine(key, i);
+                      if (!readOnly) toggleRoutine(key, i);
                     }}
                     onKeyDown={(event) => {
+                      if (readOnly) return;
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
                         event.stopPropagation();

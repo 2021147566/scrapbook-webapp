@@ -20,6 +20,8 @@ import {
   resolveInitialAuth,
   watchAuthState,
 } from '../lib/sync/firebaseSync';
+import { GUEST_PUBLIC_OWNER_EMAIL } from '../config/guest';
+import { ReadOnlyProvider, useReadOnly } from '../context/ReadOnlyContext';
 import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot, ScrapImage } from '../types';
 import { normalizeRoutineLabels } from '../types';
@@ -95,9 +97,11 @@ function formatAccountLabel(user: User): string {
   return email ? `${primary} (${email})` : primary;
 }
 
-function diaryTitleForUser(user: User | null): string {
-  if (!user) return '의서의 일기';
-  return formatAccountLabel(user);
+/** 상단 제목: 로그인 / 비로그인+Firebase(게스트 소유 표시) / 로컬만 */
+function headerDiaryTitle(authUser: User | null): string {
+  if (authUser) return formatAccountLabel(authUser);
+  if (isFirebaseConfigured()) return `${GUEST_PUBLIC_OWNER_EMAIL} 님의 일기`;
+  return '스크랩북';
 }
 
 function useFirebaseAuthUser(): User | null {
@@ -149,6 +153,7 @@ function Header() {
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const location = useLocation();
   const authUser = useFirebaseAuthUser();
+  const readOnly = useReadOnly();
   return (
     <header className="topbar">
       <div className="topbar-row">
@@ -179,13 +184,18 @@ function Header() {
         </div>
       </div>
       <div className="topbar-guest-row" aria-label="일기 주인">
-        <span className="topbar-guest-title">{diaryTitleForUser(authUser)}</span>
-        {!authUser ? (
+        <span className="topbar-guest-title">{headerDiaryTitle(authUser)}</span>
+        {!authUser && isFirebaseConfigured() ? (
           <Link className="topbar-guest-cta" to="/settings">
             나도 일기 쓰기
           </Link>
         ) : null}
       </div>
+      {readOnly ? (
+        <p className="topbar-readonly-notice" role="status">
+          보기 전용입니다. 수정·추가는 설정에서 로그인 후에만 가능해요.
+        </p>
+      ) : null}
     </header>
   );
 }
@@ -241,6 +251,8 @@ function CalendarPage() {
   const isMobileLayout = useMediaQuery(MOBILE_CALENDAR_MEDIA);
   const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
+  const readOnly = useReadOnly();
+  const pageRo = readOnly ? ' page--readonly' : '';
 
   useEffect(() => {
     if (!isMobileLayout) return;
@@ -252,7 +264,7 @@ function CalendarPage() {
 
   if (isMobileLayout) {
     return (
-      <div className="page page--calendar page--mobile-calendar">
+      <div className={`page page--calendar page--mobile-calendar${pageRo}`}>
         <CalendarWeekStrip />
         <div className="mobile-week-calendar-block">
           <CalendarWeekdayHeader />
@@ -266,7 +278,7 @@ function CalendarPage() {
   }
 
   return (
-    <div className="page page--calendar">
+    <div className={`page page--calendar${pageRo}`}>
       <div className="calendar-page-layout">
         <CalendarWeekdayHeader />
         <CalendarDateGrid />
@@ -461,11 +473,12 @@ function SettingsPage() {
   );
 }
 
-export function App() {
-  usePersistState();
+function AppShell() {
+  const authUser = useFirebaseAuthUser();
+  const readOnly = Boolean(isFirebaseConfigured() && !authUser);
 
   return (
-    <div className="app">
+    <ReadOnlyProvider value={readOnly}>
       <Header />
       <Routes>
         <Route path="/" element={<Navigate to="/calendar" replace />} />
@@ -474,6 +487,16 @@ export function App() {
         <Route path="/book" element={<BookView />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
+    </ReadOnlyProvider>
+  );
+}
+
+export function App() {
+  usePersistState();
+
+  return (
+    <div className="app">
+      <AppShell />
     </div>
   );
 }

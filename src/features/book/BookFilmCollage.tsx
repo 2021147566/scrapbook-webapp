@@ -1,10 +1,12 @@
 import clsx from 'clsx';
 import { useRef } from 'react';
+import { useReadOnly } from '../../context/ReadOnlyContext';
 import { useScrapStore } from '../../store/scrapStore';
 import type { ScrapImage } from '../../types';
 import { bookFrameTransform } from './bookFrameTransform';
 
 export function BookFilmCollage({ dateKey, images }: { dateKey: string; images: ScrapImage[] }) {
+  const readOnly = useReadOnly();
   const setImageBookOffset = useScrapStore((s) => s.setImageBookOffset);
   const dragRef = useRef<{
     pointerId: number;
@@ -36,6 +38,7 @@ export function BookFilmCollage({ dateKey, images }: { dateKey: string; images: 
             touchAction: 'none',
           }}
           onPointerDown={(e) => {
+            if (readOnly) return;
             if (e.button !== 0) return;
             e.preventDefault();
             e.stopPropagation();
@@ -49,6 +52,7 @@ export function BookFilmCollage({ dateKey, images }: { dateKey: string; images: 
             };
           }}
           onPointerMove={(e) => {
+            if (readOnly) return;
             const d = dragRef.current;
             if (!d || e.pointerId !== d.pointerId) return;
             setImageBookOffset(dateKey, img.id, {
