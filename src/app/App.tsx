@@ -103,7 +103,6 @@ function readFileAsDataUrl(file: File): Promise<string> {
 function Header() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
-  const selectedDate = useScrapStore((s) => s.selectedDate);
   const location = useLocation();
   return (
     <header className="topbar">
@@ -118,11 +117,9 @@ function Header() {
           </button>
         </div>
         <div className="topbar-meta">
-          {location.pathname === '/calendar' ? (
-            <span className="topbar-today" title={dayjs().format('YYYY-MM-DD')}>
-              오늘 {dayjs().locale('ko').format('M/D ddd')}
-            </span>
-          ) : null}
+          <span className="topbar-today" title={dayjs().format('YYYY-MM-DD')}>
+            오늘 {dayjs().locale('ko').format('M/D ddd')}
+          </span>
           <nav className="topbar-links row" aria-label="화면 전환">
             <Link className={location.pathname === '/calendar' ? 'active' : ''} to="/calendar">
               달력
@@ -134,11 +131,6 @@ function Header() {
               설정
             </Link>
           </nav>
-          {location.pathname !== '/calendar' ? (
-            <span className="topbar-date" title={selectedDate}>
-              {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
-            </span>
-          ) : null}
         </div>
       </div>
     </header>
@@ -227,6 +219,44 @@ function CalendarPage() {
             />
           </div>
 
+          <div className="calendar-sidebar-card calendar-sidebar-selected">
+            <h3 className="calendar-sidebar-section-title">이 날 사진</h3>
+            <div className="selected-grid selected-grid--sidebar">
+              {images.map((img, index) => (
+                <article
+                  key={img.id}
+                  className="image-card"
+                  draggable
+                  onDragStart={() => setDragIndex(index)}
+                  onDragEnd={() => setDragIndex(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (dragIndex === null) return;
+                    moveImage(selectedDate, dragIndex, index);
+                    setDragIndex(null);
+                  }}
+                >
+                  <img src={img.dataUrl} alt="" />
+                  <input
+                    className="image-title-input"
+                    value={img.title ?? ''}
+                    onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
+                    placeholder="사진 이름"
+                  />
+                  <div className="image-card-actions">
+                    <button type="button" onClick={() => removeImage(selectedDate, img.id)}>
+                      삭제
+                    </button>
+                    <button type="button" disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
+                      대표
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            {images.length === 0 ? <p className="calendar-sidebar-empty-photos">아직 사진이 없어요.</p> : null}
+          </div>
+
           <div className="calendar-sidebar-card calendar-sidebar-routine">
             <span className="calendar-sidebar-section-title">이 날 루틴</span>
             <div className="calendar-sidebar-routine-btns">
@@ -273,40 +303,6 @@ function CalendarPage() {
           </div>
         </aside>
       </div>
-      <section className="selected-images">
-        <h3>{selectedDate} 사진</h3>
-        <div className="selected-grid">
-          {images.map((img, index) => (
-            <article
-              key={img.id}
-              className="image-card"
-              draggable
-              onDragStart={() => setDragIndex(index)}
-              onDragEnd={() => setDragIndex(null)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => {
-                if (dragIndex === null) return;
-                moveImage(selectedDate, dragIndex, index);
-                setDragIndex(null);
-              }}
-            >
-              <img src={img.dataUrl} alt="" />
-              <input
-                className="image-title-input"
-                value={img.title ?? ''}
-                onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
-                placeholder="사진 이름"
-              />
-              <div className="image-card-actions">
-                <button onClick={() => removeImage(selectedDate, img.id)}>삭제</button>
-                <button disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
-                  대표
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
       {pending ? (
         <CropModal
           src={pending}

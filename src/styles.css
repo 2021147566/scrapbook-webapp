@@ -70,6 +70,7 @@ a {
   min-width: 10.5ch;
   text-align: center;
   color: #4b3217;
+  font-size: 1.05rem;
 }
 
 .topbar-meta {
@@ -81,9 +82,9 @@ a {
 }
 
 .topbar-today {
-  font-size: 12px;
+  font-size: 13px;
   color: #5c4a32;
-  padding: 5px 11px;
+  padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid #c4b49a;
   background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
@@ -95,11 +96,15 @@ a {
   flex-wrap: wrap;
 }
 
-.topbar-date {
-  font-size: 13px;
-  color: #6b4f2a;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
+.topbar-links a {
+  font-size: 15px;
+  font-weight: 500;
+  color: #4b3217;
+  padding: 4px 2px;
+}
+
+.topbar-links a.active {
+  color: #3d2912;
 }
 
 .row {
@@ -167,11 +172,11 @@ a {
 /* 1행: 요일만 왼쪽 | 2행: 날짜칸 + 사이드바(같은 시작 y) */
 .calendar-page-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(252px, 300px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
   grid-template-rows: auto 1fr;
   gap: 8px 14px;
   align-items: start;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .calendar-weekdays {
@@ -194,6 +199,10 @@ a {
   position: sticky;
   top: 12px;
   align-self: start;
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
 }
 
 @media (max-width: 960px) {
@@ -254,15 +263,15 @@ a {
 
 .calendar-sidebar-upload strong {
   display: block;
-  font-size: 14px;
+  font-size: 16px;
   color: #5b3d1e;
 }
 
 .calendar-sidebar-upload small {
   display: block;
-  margin: 2px 0 10px;
+  margin: 4px 0 10px;
   color: #7a6245;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .calendar-sidebar-upload input[type='file'] {
@@ -276,10 +285,14 @@ a {
 
 .calendar-sidebar-section-title {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: #5b3d1e;
   margin-bottom: 8px;
+}
+
+.calendar-sidebar-card h3.calendar-sidebar-section-title {
+  margin-top: 0;
 }
 
 .calendar-sidebar-routine-btns {
@@ -308,7 +321,7 @@ a {
   grid-template-rows: auto auto;
   gap: 4px 8px;
   align-items: center;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .calendar-sidebar-stat-name {
@@ -411,8 +424,9 @@ a {
 
 .calendar-weekday {
   text-align: center;
-  font-size: 11px;
-  color: #7a6245;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5c4a32;
 }
 
 .calendar-cell {
@@ -592,14 +606,33 @@ a {
   opacity: 0.55;
 }
 
-.selected-images {
-  margin-top: 16px;
-}
-
 .selected-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 10px;
+}
+
+/* 달력 오른쪽 바: 이 날 사진(한 열) */
+.selected-grid--sidebar {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.calendar-sidebar-empty-photos {
+  margin: 0;
+  font-size: 14px;
+  color: #8a734f;
+  line-height: 1.45;
+}
+
+.calendar-sidebar-selected .image-title-input {
+  font-size: 14px;
+  padding: 8px 10px;
+}
+
+.calendar-sidebar-selected .image-card-actions button {
+  font-size: 13px;
+  padding: 8px 10px;
 }
 
 .image-card img {
@@ -678,6 +711,8 @@ a {
 
 /* 달력 오른쪽 바 루틴: 연한 빈티지 톤 */
 .calendar-sidebar-routine .routine-btn--sidebar {
+  font-size: 14px;
+  padding: 10px 12px;
   background: linear-gradient(180deg, #fdf9f2 0%, #ebe3d4 100%);
   color: #4f4334;
   box-shadow: 0 1px 0 rgba(95, 66, 32, 0.1);
