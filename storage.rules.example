@@ -1,4 +1,12 @@
 // =============================================================================
+// Storage — CORS (브라우저에서 snapshot.json 읽기 / 업로드 시 필수)
+// GitHub Pages 등 다른 origin에서 Storage SDK(getBytes 등)를 쓰려면 GCS 버킷에 CORS를 적용해야 합니다.
+// 레포 루트 storage-cors.json 을 수정한 뒤( origin에 Pages URL 포함 ), Cloud SDK에서:
+//   gsutil cors set storage-cors.json gs://<버킷이름>
+// 버킷 이름: Firebase 콘솔 → Storage 상단 gs://... (예: my-diary-328aa.firebasestorage.app 또는 *.appspot.com)
+// 확인: gsutil cors get gs://<버킷이름>
+// Firestore에 snapshot 필드가 있으면 앱은 기본적으로 Storage 병합을 건너뛰어 CORS 없이 동작할 수 있음.
+// =============================================================================
 // Storage → 규칙 → 게시
 // - scrapbooks/{uid}/** : 누구나 읽기 (공개)
 // - 쓰기: 로그인 + 본인 폴더 + 소유자 이메일

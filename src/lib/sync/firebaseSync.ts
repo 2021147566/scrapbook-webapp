@@ -209,15 +209,21 @@ async function fetchScrapbookBundleForUid(uid: string): Promise<PersistedSnapsho
     const fsImg = countSnapshotImages(fsSnap);
     console.info(SCRAP_LOG, 'Firestore 로드', docPath, `이미지 ${fsImg}장`);
 
-    const stSnap = await fetchOwnerSnapshotFromStorage(uid);
-    if (!stSnap) {
-      return fsSnap;
+    // Firestore에 스냅샷이 있으면 Storage snapshot.json 병합 생략.
+    // getBytes()는 브라우저 XHR이라 GCS 버킷 CORS가 없으면 GitHub Pages 등에서 실패함.
+    // 업로드 시 Firestore·Storage에 동일 내용을 쓰므로 일반적으로 병합 불필요.
+    if (import.meta.env.VITE_FORCE_STORAGE_SNAPSHOT_MERGE === 'true') {
+      const stSnap = await fetchOwnerSnapshotFromStorage(uid);
+      if (!stSnap) {
+        return fsSnap;
+      }
+      const stImg = countSnapshotImages(stSnap);
+      const merged = mergeSnapshots(fsSnap, stSnap);
+      const mergedImg = countSnapshotImages(merged);
+      console.info(SCRAP_LOG, 'Storage 병합', `Firestore ${fsImg} + Storage ${stImg} → ${mergedImg}장`);
+      return merged;
     }
-    const stImg = countSnapshotImages(stSnap);
-    const merged = mergeSnapshots(fsSnap, stSnap);
-    const mergedImg = countSnapshotImages(merged);
-    console.info(SCRAP_LOG, 'Storage 병합', `Firestore ${fsImg} + Storage ${stImg} → ${mergedImg}장`);
-    return merged;
+    return fsSnap;
   } catch (e) {
     const detail =
       e instanceof FirebaseError
