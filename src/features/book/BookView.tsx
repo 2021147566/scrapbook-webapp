@@ -17,47 +17,56 @@ export function BookView() {
   const currentImages = currentDate ? imagesByDate[currentDate] ?? [] : [];
 
   return (
-    <div className="book-layout">
-      <section className="book-page">
-        {currentDate ? (
-          <>
-            <header>
-              <h3>{dayjs(currentDate).format('YYYY년 M월 D일')}</h3>
-              <p>
-                {safeIndex + 1}/{dates.length}
-              </p>
-            </header>
-            {currentImages.length > 0 ? (
-              <div className="book-photo-stage">
-                <p className="book-drag-hint">사진을 드래그해 위치를 조정할 수 있어요.</p>
-                <BookFilmCollage dateKey={currentDate} images={currentImages} />
-                <div className="row book-photo-actions">
-                  <button type="button" onClick={() => resetBookLayoutForDate(currentDate)}>
-                    이 날 위치 초기화
-                  </button>
+    <div className="page page--book">
+      <div className="book-layout">
+        <section className="book-page">
+          {currentDate ? (
+            <>
+              <header className="book-page-header">
+                <h3>{dayjs(currentDate).format('YYYY년 M월 D일')}</h3>
+                <p>
+                  {safeIndex + 1}/{dates.length}
+                </p>
+              </header>
+              {currentImages.length > 0 ? (
+                <div className="book-photo-stage">
+                  <p className="book-drag-hint">드래그로 위치 조정</p>
+                  <div className="book-collage-wrap">
+                    <BookFilmCollage dateKey={currentDate} images={currentImages} />
+                  </div>
                 </div>
-                <small className="book-count">이 날의 사진 {currentImages.length}장</small>
+              ) : (
+                <p className="book-empty-day">이미지 없음</p>
+              )}
+              <div className="row book-toolbar">
+                <button type="button" disabled={safeIndex <= 0} onClick={() => setIndex((v) => v - 1)}>
+                  이전
+                </button>
+                <button
+                  type="button"
+                  disabled={safeIndex >= dates.length - 1}
+                  onClick={() => setIndex((v) => v + 1)}
+                >
+                  다음
+                </button>
+                {currentImages.length > 0 ? (
+                  <>
+                    <span className="book-toolbar-meta" aria-live="polite">
+                      사진 {currentImages.length}장
+                    </span>
+                    <button type="button" onClick={() => resetBookLayoutForDate(currentDate)}>
+                      위치 초기화
+                    </button>
+                  </>
+                ) : null}
               </div>
-            ) : (
-              <p>이미지 없음</p>
-            )}
-            <div className="row">
-              <button disabled={safeIndex <= 0} onClick={() => setIndex((v) => v - 1)}>
-                이전
-              </button>
-              <button
-                disabled={safeIndex >= dates.length - 1}
-                onClick={() => setIndex((v) => v + 1)}
-              >
-                다음
-              </button>
-            </div>
-          </>
-        ) : (
-          <p>아직 저장된 페이지가 없습니다. 달력에서 이미지를 추가해보세요.</p>
-        )}
-      </section>
-      <DiaryPanel date={currentDate ?? dayjs().format('YYYY-MM-DD')} />
+            </>
+          ) : (
+            <p className="book-empty-all">아직 저장된 페이지가 없습니다. 달력에서 이미지를 추가해보세요.</p>
+          )}
+        </section>
+        <DiaryPanel date={currentDate ?? dayjs().format('YYYY-MM-DD')} />
+      </div>
     </div>
   );
 }
