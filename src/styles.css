@@ -460,7 +460,9 @@ a {
   flex-direction: column;
   align-items: stretch;
   min-height: 0;
-  width: 100%;
+  width: 95%;
+  margin-left: auto;
+  margin-right: auto;
   aspect-ratio: 1 / 1;
   border: 1px solid #dcc6a8;
   border-radius: 6px;
@@ -665,6 +667,13 @@ a {
 .calendar-sidebar-selected .image-card-actions button {
   font-size: 12px;
   padding: 7px 8px;
+}
+
+.calendar-sidebar-selected .image-card img {
+  width: 95%;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
 }
 
 .image-card img {
@@ -920,7 +929,8 @@ button:hover {
 }
 
 .book-collage-wrap {
-  --book-polaroid-size: min(278px, 48vmin, 58vw);
+  /* 기준 대비 95% */
+  --book-polaroid-size: min(264px, 45.6vmin, 55.1vw);
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
