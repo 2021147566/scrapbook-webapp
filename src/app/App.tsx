@@ -24,9 +24,6 @@ import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot, ScrapImage } from '../types';
 import { normalizeRoutineLabels } from '../types';
 
-/** 비로그인 기본 일기(의서) 표시용 — UI 문구 */
-const GUEST_OWNER_EMAIL = 'euiseo0531303@gmail.com';
-
 /** 달력 그리드·사이드바와 동일 기준 (styles.css) */
 const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
 
@@ -311,6 +308,39 @@ function SettingsPage() {
     setSyncNote('백업 파일을 저장했습니다.');
   };
 
+  if (!authUser) {
+    return (
+      <section className="settings settings--login-only">
+        {!hasFirebase ? (
+          <p className="settings-hint">Firebase 환경변수가 없어 Google 로그인을 쓸 수 없습니다.</p>
+        ) : (
+          <>
+            <p className="settings-login-lead">로그인하면 루틴·백업·클라우드 동기화를 사용할 수 있어요.</p>
+            <button
+              type="button"
+              className="settings-backup-btn settings-google-login-btn settings-login-main-btn"
+              onClick={async () => {
+                try {
+                  const user = await loginWithGoogle();
+                  if (user) {
+                    setSyncNote(`${user.displayName ?? user.email} 로그인됨`);
+                  } else {
+                    setSyncNote('Google 로그인 화면으로 이동 중…');
+                  }
+                } catch (e) {
+                  setSyncNote(e instanceof Error ? e.message : '로그인 실패');
+                }
+              }}
+            >
+              Google 로그인
+            </button>
+          </>
+        )}
+        {syncNote ? <p className="settings-sync-note">{syncNote}</p> : null}
+      </section>
+    );
+  }
+
   return (
     <section className="settings">
       <h3>루틴 이름 (3개 고정)</h3>
@@ -362,102 +392,67 @@ function SettingsPage() {
       </div>
       <h3>동기화(Firebase)</h3>
       {!hasFirebase ? (
-        <p className="settings-hint">환경변수가 없어서 로컬·백업만 사용 중입니다.</p>
+        <p className="settings-hint">환경변수가 없어서 클라우드 동기화를 쓸 수 없습니다.</p>
       ) : (
         <>
-          {!authUser && canLoadGuestDefault() ? (
-            <p className="settings-hint">
-              비로그인 시 <strong>{GUEST_OWNER_EMAIL}</strong> 님의 공개 일기가 기본으로 합쳐져 보여요. 나만의 일기를 쓰려면 아래에서
-              Google로 로그인하세요.
-            </p>
-          ) : null}
-          {!authUser && !canLoadGuestDefault() ? (
-            <p className="settings-hint">Google 로그인 후 클라우드에 올리고 다른 기기와 맞출 수 있어요.</p>
-          ) : null}
-          {authUser ? (
-            <p className="settings-hint settings-hint--ok">
-              <strong>{authUser.displayName ?? authUser.email}</strong> 로그인 중
-            </p>
-          ) : null}
+          <p className="settings-hint settings-hint--ok">
+            <strong>{authUser.displayName ?? authUser.email}</strong> 로그인 중
+          </p>
           <div className="settings-firebase-actions">
-            {!authUser ? (
+            <div className="settings-firebase-row">
               <button
                 type="button"
-                className="settings-backup-btn settings-google-login-btn"
-                disabled={!hasFirebase}
+                className="settings-backup-btn"
                 onClick={async () => {
                   try {
-                    const user = await loginWithGoogle();
-                    if (user) {
-                      setSyncNote(`${user.displayName ?? user.email} 로그인됨`);
-                    } else {
-                      setSyncNote('Google 로그인 화면으로 이동 중…');
-                    }
+                    await pushSnapshot(toSnapshot());
+                    setSyncNote('클라우드로 업로드 완료');
                   } catch (e) {
-                    setSyncNote(e instanceof Error ? e.message : '로그인 실패');
+                    setSyncNote(e instanceof Error ? e.message : '업로드 실패');
                   }
                 }}
               >
-                Google 로그인
+                업로드
               </button>
-            ) : (
-              <>
-                <div className="settings-firebase-row">
-                  <button
-                    type="button"
-                    className="settings-backup-btn"
-                    onClick={async () => {
-                      try {
-                        await pushSnapshot(toSnapshot());
-                        setSyncNote('클라우드로 업로드 완료');
-                      } catch (e) {
-                        setSyncNote(e instanceof Error ? e.message : '업로드 실패');
-                      }
-                    }}
-                  >
-                    업로드
-                  </button>
-                  <button
-                    type="button"
-                    className="settings-backup-btn"
-                    onClick={async () => {
-                      try {
-                        const cloud = await pullSnapshot();
-                        if (cloud) {
-                          const merged = mergeSnapshots(toSnapshot(), cloud);
-                          loadState(merged);
-                          setSyncNote('클라우드 병합 완료(최신 수정 우선)');
-                        } else {
-                          setSyncNote('클라우드에 저장된 데이터가 없습니다.');
-                        }
-                      } catch (e) {
-                        setSyncNote(e instanceof Error ? e.message : '내려받기 실패');
-                      }
-                    }}
-                  >
-                    내려받기
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  className="settings-backup-btn settings-firebase-logout"
-                  onClick={async () => {
-                    try {
-                      await logoutFirebase();
-                      setSyncNote('로그아웃했습니다.');
-                    } catch (e) {
-                      setSyncNote(e instanceof Error ? e.message : '로그아웃 실패');
+              <button
+                type="button"
+                className="settings-backup-btn"
+                onClick={async () => {
+                  try {
+                    const cloud = await pullSnapshot();
+                    if (cloud) {
+                      const merged = mergeSnapshots(toSnapshot(), cloud);
+                      loadState(merged);
+                      setSyncNote('클라우드 병합 완료(최신 수정 우선)');
+                    } else {
+                      setSyncNote('클라우드에 저장된 데이터가 없습니다.');
                     }
-                  }}
-                >
-                  로그아웃
-                </button>
-                <label className="settings-auto-sync">
-                  <input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />
-                  자동 동기화(10초마다 업로드)
-                </label>
-              </>
-            )}
+                  } catch (e) {
+                    setSyncNote(e instanceof Error ? e.message : '내려받기 실패');
+                  }
+                }}
+              >
+                내려받기
+              </button>
+            </div>
+            <button
+              type="button"
+              className="settings-backup-btn settings-firebase-logout"
+              onClick={async () => {
+                try {
+                  await logoutFirebase();
+                  setSyncNote('로그아웃했습니다.');
+                } catch (e) {
+                  setSyncNote(e instanceof Error ? e.message : '로그아웃 실패');
+                }
+              }}
+            >
+              로그아웃
+            </button>
+            <label className="settings-auto-sync">
+              <input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />
+              자동 동기화(10초마다 업로드)
+            </label>
           </div>
         </>
       )}

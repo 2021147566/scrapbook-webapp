@@ -142,6 +142,30 @@ a {
   margin-top: 0;
 }
 
+.settings--login-only {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: min(42vh, 320px);
+  padding: 28px 20px;
+}
+
+.settings-login-lead {
+  margin: 0 0 20px;
+  max-width: 280px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #5b3d1e;
+}
+
+.settings-login-main-btn {
+  min-height: 44px !important;
+  padding: 10px 28px !important;
+  font-size: 15px !important;
+}
+
 .settings-hint {
   margin: 0 0 10px;
   font-size: 13px;
