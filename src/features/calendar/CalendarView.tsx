@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import clsx from 'clsx';
 import { useMonthShardNav } from '../../hooks/useMonthShardNav';
 import { useReadOnly } from '../../context/ReadOnlyContext';
@@ -11,13 +11,22 @@ function buildMonthDays(cursor: Date): dayjs.Dayjs[] {
   return Array.from({ length: start.daysInMonth() }, (_, i) => start.add(i, 'day'));
 }
 
-/** 일요일 시작 7일 (상단 요일 줄과 동일: 일~토) */
-export function getWeekDaysContaining(anchor: Date): dayjs.Dayjs[] {
-  const sun = dayjs(anchor).day(0);
-  return Array.from({ length: 7 }, (_, i) => sun.add(i, 'day'));
-}
-
 const weekLabels = ['일', '월', '화', '수', '목', '금', '토'];
+
+function mobileDayLabels(day: dayjs.Dayjs, todayKey: string): { primary: string; sub: string } {
+  const key = day.format('YYYY-MM-DD');
+  const t = dayjs(todayKey);
+  if (key === todayKey) {
+    return { primary: '오늘', sub: day.locale('ko').format('M/D ddd') };
+  }
+  if (key === t.subtract(1, 'day').format('YYYY-MM-DD')) {
+    return { primary: '어제', sub: day.locale('ko').format('M/D ddd') };
+  }
+  if (key === t.subtract(2, 'day').format('YYYY-MM-DD')) {
+    return { primary: '그저께', sub: day.locale('ko').format('M/D ddd') };
+  }
+  return { primary: `${day.date()}`, sub: day.locale('ko').format('ddd') };
+}
 
 function useCalendarMonthData() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
@@ -158,122 +167,130 @@ export function CalendarDateGrid() {
   );
 }
 
-function useWeekCalendarData() {
-  const weekCursor = useScrapStore((s) => s.weekCursor);
+/** 모바일: 이번 달 날짜만 가로 스크롤(한 화면에 약 3일), 스크롤바 숨김 */
+export function CalendarMobileMonthScroller() {
+  const readOnly = useReadOnly();
+  const goToMonthShard = useMonthShardNav();
+  const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
+  const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
+  const monthCursor = useScrapStore((s) => s.monthCursor);
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
   const routineByDate = useScrapStore((s) => s.routineByDate);
   const routineLabels = useScrapStore((s) => s.routineLabels);
-  const routineNames = useMemo(() => effectiveRoutineLabels(routineLabels), [routineLabels]);
-  const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
   const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
-  const weekDays = useMemo(() => getWeekDaysContaining(weekCursor), [weekCursor]);
+  const routineNames = useMemo(() => effectiveRoutineLabels(routineLabels), [routineLabels]);
+  const monthDays = useMemo(() => buildMonthDays(monthCursor), [monthCursor]);
   const todayKey = dayjs().format('YYYY-MM-DD');
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  return {
-    weekDays,
-    selectedDate,
-    imagesByDate,
-    routineByDate,
-    routineNames,
-    setSelectedDate,
-    toggleRoutine,
-    todayKey,
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root) return;
+    const el = root.querySelector(`[data-date="${selectedDate}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [selectedDate, monthCursor]);
+
+  const goToday = () => {
+    const t = dayjs();
+    void (async () => {
+      await goToMonthShard(t.toDate());
+      setMonthCursor(t.startOf('month').toDate());
+      setSelectedDate(t.format('YYYY-MM-DD'));
+    })();
   };
-}
-
-/** 모바일 주간 뷰: 이번 주 7칸만 */
-export function CalendarWeekGrid() {
-  const readOnly = useReadOnly();
-  const goToMonthShard = useMonthShardNav();
-  const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
-  const {
-    weekDays,
-    selectedDate,
-    imagesByDate,
-    routineByDate,
-    routineNames,
-    setSelectedDate,
-    toggleRoutine,
-    todayKey,
-  } = useWeekCalendarData();
 
   return (
-    <div className="calendar-grid calendar-grid--week">
-      {weekDays.map((day) => {
-        const key = day.format('YYYY-MM-DD');
-        const items = imagesByDate[key] ?? [];
-        const routines = routineByDate[key] ?? [false, false, false];
-        const isToday = key === todayKey;
-        return (
-          <button
-            key={key}
-            type="button"
-            className={clsx('calendar-cell', {
-              selected: key === selectedDate,
-              today: isToday,
-            })}
-            onClick={() => {
-              void (async () => {
-                await goToMonthShard(day.toDate());
-                setMonthCursor(day.startOf('month').toDate());
-                setSelectedDate(key);
-              })();
-            }}
-          >
-            <div className="day-header">
-              <span className="day-number">{day.date()}</span>
-              <span className="routine-dots">
-                {routines.map((done, i) => (
-                  <span
-                    key={`${key}-${i}`}
-                    className={clsx('routine-dot', `dot-${i + 1}`, { done })}
-                    role="button"
-                    tabIndex={0}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (!readOnly) toggleRoutine(key, i);
-                    }}
-                    onKeyDown={(event) => {
-                      if (readOnly) return;
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        toggleRoutine(key, i);
-                      }
-                    }}
-                    aria-label={`${key} ${routineNames[i]} 토글`}
-                  />
-                ))}
-              </span>
-            </div>
-            <div className="stack-preview">
-              {items.length > 0 ? (
-                <div className={clsx('photo-stack', items.length > 1 && 'photo-stack--multi')}>
-                  {items.length > 2 ? (
-                    <img
-                      src={items[2].dataUrl}
-                      alt=""
-                      className="stack-image-back layer-far"
-                      aria-hidden
-                    />
-                  ) : null}
-                  {items.length > 1 ? (
-                    <img
-                      src={items[1].dataUrl}
-                      alt=""
-                      className="stack-image-back layer-mid"
-                      aria-hidden
-                    />
-                  ) : null}
-                  <img src={items[0].dataUrl} alt="" className="stack-image-main" />
+    <div className="mobile-month-calendar-wrap">
+      <div className="mobile-month-calendar-head">
+        <span className="mobile-month-calendar-title">{dayjs(monthCursor).locale('ko').format('M월 YYYY')}</span>
+        <button type="button" className="mobile-month-today-btn" onClick={goToday}>
+          오늘
+        </button>
+      </div>
+      <div className="mobile-month-scroll hide-scrollbar" ref={scrollRef}>
+        <div className="mobile-month-scroll-inner">
+          {monthDays.map((day) => {
+            const key = day.format('YYYY-MM-DD');
+            const items = imagesByDate[key] ?? [];
+            const routines = routineByDate[key] ?? [false, false, false];
+            const isToday = key === todayKey;
+            const { primary, sub } = mobileDayLabels(day, todayKey);
+            return (
+              <button
+                key={key}
+                type="button"
+                data-date={key}
+                className={clsx('calendar-cell', 'calendar-cell--mobile-strip', {
+                  selected: key === selectedDate,
+                  today: isToday,
+                })}
+                onClick={() => {
+                  void (async () => {
+                    await goToMonthShard(day.toDate());
+                    setMonthCursor(day.startOf('month').toDate());
+                    setSelectedDate(key);
+                  })();
+                }}
+              >
+                <div className="mobile-strip-daytag">
+                  <span className="mobile-strip-daytag-primary">{primary}</span>
+                  <span className="mobile-strip-daytag-sub">{sub}</span>
                 </div>
-              ) : null}
-            </div>
-            {items.length > 1 && <small className="calendar-cell-more">+{items.length - 1}</small>}
-          </button>
-        );
-      })}
+                <div className="day-header day-header--mobile-strip">
+                  <span className="routine-dots">
+                    {routines.map((done, i) => (
+                      <span
+                        key={`${key}-${i}`}
+                        className={clsx('routine-dot', `dot-${i + 1}`, { done })}
+                        role="button"
+                        tabIndex={0}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (!readOnly) toggleRoutine(key, i);
+                        }}
+                        onKeyDown={(event) => {
+                          if (readOnly) return;
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleRoutine(key, i);
+                          }
+                        }}
+                        aria-label={`${key} ${routineNames[i]} 토글`}
+                      />
+                    ))}
+                  </span>
+                </div>
+                <div className="stack-preview">
+                  {items.length > 0 ? (
+                    <div className={clsx('photo-stack', items.length > 1 && 'photo-stack--multi')}>
+                      {items.length > 2 ? (
+                        <img
+                          src={items[2].dataUrl}
+                          alt=""
+                          className="stack-image-back layer-far"
+                          aria-hidden
+                        />
+                      ) : null}
+                      {items.length > 1 ? (
+                        <img
+                          src={items[1].dataUrl}
+                          alt=""
+                          className="stack-image-back layer-mid"
+                          aria-hidden
+                        />
+                      ) : null}
+                      <img src={items[0].dataUrl} alt="" className="stack-image-main" />
+                    </div>
+                  ) : null}
+                </div>
+                {items.length > 1 && <small className="calendar-cell-more">+{items.length - 1}</small>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

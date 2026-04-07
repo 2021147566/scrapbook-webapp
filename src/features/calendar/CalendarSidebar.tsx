@@ -2,6 +2,8 @@ import dayjs from 'dayjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CropModal } from '../crop/CropModal';
 import { useReadOnly } from '../../context/ReadOnlyContext';
+import { useFirebaseAuthUser } from '../../hooks/useFirebaseAuthUser';
+import { isFirebaseConfigured } from '../../lib/sync/firebaseSync';
 import { readFileAsDataUrl } from '../../lib/readFile';
 import { useScrapStore } from '../../store/scrapStore';
 import type { ScrapImage } from '../../types';
@@ -11,6 +13,8 @@ const EMPTY_IMAGES: ScrapImage[] = [];
 
 export function CalendarSidebar() {
   const readOnly = useReadOnly();
+  const authUser = useFirebaseAuthUser();
+  const showPhotoAdd = !isFirebaseConfigured() || authUser != null;
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
@@ -49,7 +53,7 @@ export function CalendarSidebar() {
   };
 
   useEffect(() => {
-    if (readOnly) return;
+    if (readOnly || !showPhotoAdd) return;
     const onPaste = async (event: ClipboardEvent) => {
       const file = Array.from(event.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'));
       if (!file) return;
@@ -58,7 +62,7 @@ export function CalendarSidebar() {
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-  }, [readOnly]);
+  }, [readOnly, showPhotoAdd]);
 
   return (
     <>
@@ -73,30 +77,32 @@ export function CalendarSidebar() {
           </span>
         </div>
 
-        <div className="calendar-sidebar-card calendar-sidebar-upload">
-          <div className="calendar-sidebar-upload-head">
-            <strong>사진 추가</strong>
-            <small>{readOnly ? '보기 전용' : 'Ctrl+V 붙여넣기'}</small>
+        {showPhotoAdd ? (
+          <div className="calendar-sidebar-card calendar-sidebar-upload">
+            <div className="calendar-sidebar-upload-head">
+              <strong>사진 추가</strong>
+              <small>{readOnly ? '보기 전용' : 'Ctrl+V 붙여넣기'}</small>
+            </div>
+            <button
+              type="button"
+              className="calendar-sidebar-upload-btn"
+              disabled={readOnly}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              이미지 선택
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              disabled={readOnly}
+              onChange={(e) => {
+                onFiles(e.target.files);
+                e.currentTarget.value = '';
+              }}
+            />
           </div>
-          <button
-            type="button"
-            className="calendar-sidebar-upload-btn"
-            disabled={readOnly}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            이미지 선택
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            disabled={readOnly}
-            onChange={(e) => {
-              onFiles(e.target.files);
-              e.currentTarget.value = '';
-            }}
-          />
-        </div>
+        ) : null}
 
         <div className="calendar-sidebar-card calendar-sidebar-routine">
           <span className="calendar-sidebar-section-title">이 날 루틴</span>
@@ -191,7 +197,7 @@ export function CalendarSidebar() {
           {images.length === 0 ? <p className="calendar-sidebar-empty-photos">아직 사진이 없어요.</p> : null}
         </div>
       </aside>
-      {!readOnly && pending ? (
+      {!readOnly && showPhotoAdd && pending ? (
         <CropModal
           src={pending}
           onClose={() => setPending(null)}

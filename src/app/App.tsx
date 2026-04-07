@@ -3,7 +3,11 @@ import 'dayjs/locale/en';
 import 'dayjs/locale/ko';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { CalendarDateGrid, CalendarWeekGrid, CalendarWeekdayHeader } from '../features/calendar/CalendarView';
+import {
+  CalendarDateGrid,
+  CalendarMobileMonthScroller,
+  CalendarWeekdayHeader,
+} from '../features/calendar/CalendarView';
 import { CalendarSidebar } from '../features/calendar/CalendarSidebar';
 import { BookView } from '../features/book/BookView';
 import { useMonthShardNav } from '../hooks/useMonthShardNav';
@@ -367,63 +371,8 @@ function Header() {
   );
 }
 
-/** 좁은 화면 달력 본문 상단: 이번 주만 (전역 헤더에 월 이동 숨김은 CSS) */
-function CalendarWeekStrip() {
-  const weekCursor = useScrapStore((s) => s.weekCursor);
-  const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
-  const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
-  const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
-  const goToMonthShard = useMonthShardNav();
-
-  const weekStart = dayjs(weekCursor).day(0);
-  const weekEnd = weekStart.add(6, 'day');
-  const rangeLabel = `${weekStart.locale('ko').format('M/D')} – ${weekEnd.locale('ko').format('M/D')}`;
-
-  const shiftWeek = (delta: number) => {
-    const nextWeekStart = dayjs(weekCursor).add(delta, 'week').day(0);
-    void (async () => {
-      await goToMonthShard(nextWeekStart.toDate());
-      setWeekCursor(nextWeekStart.toDate());
-      setMonthCursor(nextWeekStart.startOf('month').toDate());
-      setSelectedDate(nextWeekStart.format('YYYY-MM-DD'));
-    })();
-  };
-
-  const goToday = () => {
-    const t = dayjs();
-    const sun = t.day(0);
-    void (async () => {
-      await goToMonthShard(sun.toDate());
-      setWeekCursor(sun.toDate());
-      setMonthCursor(t.startOf('month').toDate());
-      setSelectedDate(t.format('YYYY-MM-DD'));
-    })();
-  };
-
-  return (
-    <div className="calendar-week-strip">
-      <div className="mobile-week-nav">
-        <button type="button" className="mobile-week-btn" onClick={() => shiftWeek(-1)} aria-label="이전 주">
-          ◀
-        </button>
-        <div className="mobile-week-range">
-          <strong>{rangeLabel}</strong>
-          <span className="mobile-week-sub">{weekStart.locale('ko').format('YYYY년')}</span>
-        </div>
-        <button type="button" className="mobile-week-btn" onClick={() => shiftWeek(1)} aria-label="다음 주">
-          ▶
-        </button>
-        <button type="button" className="mobile-today-btn" onClick={goToday}>
-          오늘
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function CalendarPage() {
   const isMobileLayout = useMediaQuery(MOBILE_CALENDAR_MEDIA);
-  const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const goToMonthShard = useMonthShardNav();
   const readOnly = useReadOnly();
@@ -432,20 +381,14 @@ function CalendarPage() {
   useEffect(() => {
     if (!isMobileLayout) return;
     const d = useScrapStore.getState().selectedDate;
-    const w = dayjs(d).day(0).toDate();
-    setWeekCursor(w);
     setMonthCursor(dayjs(d).startOf('month').toDate());
     void goToMonthShard(dayjs(d).toDate());
-  }, [isMobileLayout, setWeekCursor, setMonthCursor, goToMonthShard]);
+  }, [isMobileLayout, setMonthCursor, goToMonthShard]);
 
   if (isMobileLayout) {
     return (
       <div className={`page page--calendar page--mobile-calendar${pageRo}`}>
-        <CalendarWeekStrip />
-        <div className="mobile-week-calendar-block">
-          <CalendarWeekdayHeader />
-          <CalendarWeekGrid />
-        </div>
+        <CalendarMobileMonthScroller />
         <div className="mobile-sidebar-scroll">
           <CalendarSidebar />
         </div>

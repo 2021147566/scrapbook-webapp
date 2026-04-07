@@ -506,7 +506,18 @@ a {
   display: none;
 }
 
-/* 모바일 주간 뷰: 상단 주간 달력 + 하단 스크롤 사이드바 */
+/* 가로 스크롤바 숨김 (모바일 달력 날짜 칸 등) */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* 모바일: 한 달 가로 스크롤(약 3일 노출) + 하단 사이드바 */
 .page.page--mobile-calendar {
   margin-top: 8px;
   padding: 0;
@@ -610,18 +621,86 @@ a {
   border-bottom: 2px solid #8b6914;
 }
 
-.mobile-week-calendar-block {
+.mobile-month-calendar-wrap {
   flex-shrink: 0;
   padding: 0 8px 8px;
 }
 
-.mobile-week-calendar-block .calendar-weekdays {
-  margin-bottom: 4px;
+.mobile-month-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 0 4px;
 }
 
-.calendar-grid.calendar-grid--week .calendar-cell {
-  aspect-ratio: 0.92 / 1;
+.mobile-month-calendar-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4b3217;
+}
+
+.mobile-month-today-btn {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #c4b49a;
+  background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
+  color: #4b3217;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-month-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+
+.mobile-month-scroll-inner {
+  display: flex;
+  gap: 8px;
+  padding: 4px 4px 8px;
+}
+
+.calendar-cell.calendar-cell--mobile-strip {
+  flex: 0 0 calc((100vw - 48px) / 3);
+  min-width: calc((100vw - 48px) / 3);
+  max-width: 150px;
+  scroll-snap-align: start;
+  aspect-ratio: 0.88 / 1;
   min-height: 0;
+}
+
+.mobile-strip-daytag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin-bottom: 4px;
+  line-height: 1.15;
+}
+
+.mobile-strip-daytag-primary {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b4a1e;
+}
+
+.mobile-strip-daytag-sub {
+  font-size: 9px;
+  color: #6b5538;
+  opacity: 0.92;
+}
+
+.day-header--mobile-strip {
+  justify-content: center;
+}
+
+.day-header--mobile-strip .routine-dots {
+  justify-content: center;
 }
 
 .mobile-sidebar-scroll {
