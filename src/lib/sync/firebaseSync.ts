@@ -110,19 +110,6 @@ export function watchAuthState(onChange: (user: User | null) => void): () => voi
   });
 }
 
-export async function resolveInitialAuth(): Promise<User | null> {
-  if (!isFirebaseConfigured()) return null;
-  await completeGoogleRedirectIfAny();
-  return new Promise((resolve) => {
-    ensureFirebase();
-    const unsub = onAuthStateChanged(getAuth(), (user) => {
-      unsub();
-      authUser = user;
-      resolve(user);
-    });
-  });
-}
-
 /** 공개 일기 로드: JSON URL 또는 소유자 UID(Firestore/Storage) */
 export function canLoadPublicScrapbook(): boolean {
   return Boolean(import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim() || ownerScrapbookUid());

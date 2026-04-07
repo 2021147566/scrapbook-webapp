@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/en';
 import 'dayjs/locale/ko';
-import { useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CalendarDateGrid, CalendarWeekGrid, CalendarWeekdayHeader } from '../features/calendar/CalendarView';
 import { CalendarSidebar } from '../features/calendar/CalendarSidebar';
@@ -12,6 +12,7 @@ import type { User } from 'firebase/auth';
 import { isOwnerEmail, OWNER_EMAIL } from '../config/scrapbookOwner';
 import {
   canLoadPublicScrapbook,
+  completeGoogleRedirectIfAny,
   fetchPublicScrapbookSnapshot,
   getCurrentUser,
   isFirebaseConfigured,
@@ -21,7 +22,6 @@ import {
   logoutFirebase,
   pullSnapshot,
   pushSnapshot,
-  resolveInitialAuth,
   watchAuthState,
 } from '../lib/sync/firebaseSync';
 import { ReadOnlyProvider, useReadOnly } from '../context/ReadOnlyContext';
@@ -85,38 +85,73 @@ async function mergePublicIntoStore(loadState: (s: PersistedSnapshot) => void): 
   return true;
 }
 
-function useFirebaseAuthUser(): User | null {
-  const [user, setUser] = useState<User | null>(null);
-  useEffect(() => {
-    if (!isFirebaseConfigured()) return;
-    return watchAuthState(setUser);
-  }, []);
-  return user;
+export type AuthState = { user: User | null; ready: boolean };
+
+const AuthStateContext = createContext<AuthState | null>(null);
+
+function useAuthState(): AuthState {
+  const ctx = useContext(AuthStateContext);
+  if (!ctx) {
+    throw new Error('useAuthState must be used under AuthStateContext.Provider');
+  }
+  return ctx;
 }
 
-function usePersistState() {
+/** Firebase 사용 시 첫 onAuthStateChanged까지 ready=false — resolveInitialAuth 한 번만 듣고 끊으면 세션 복원 전 null로 고정되는 문제 방지 */
+function useFirebaseAuthUser(): AuthState {
+  const [user, setUser] = useState<User | null>(null);
+  const [ready, setReady] = useState(() => !isFirebaseConfigured());
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+    let cancelled = false;
+    let unsub: (() => void) | undefined;
+    (async () => {
+      await completeGoogleRedirectIfAny();
+      if (cancelled) return;
+      setReady(false);
+      unsub = watchAuthState((u) => {
+        setUser(u);
+        setReady(true);
+      });
+    })();
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
+  }, []);
+  return { user, ready };
+}
+
+function usePersistState(auth: AuthState) {
   const toSnapshot = useScrapStore((s) => s.toSnapshot);
   const loadState = useScrapStore((s) => s.loadSnapshot);
+  const { user, ready } = auth;
+  const didLoadIdb = useRef(false);
+  const didMergePublicOnce = useRef(false);
+
   useEffect(() => {
+    if (!ready) return;
     let cancelled = false;
     (async () => {
       try {
         logPublicBootstrapLine();
-        const user = await resolveInitialAuth();
-        if (cancelled) return;
-        const snapshot = await loadSnapshot();
-        if (cancelled) return;
-        if (snapshot) loadState(snapshot);
+        if (!didLoadIdb.current) {
+          const snapshot = await loadSnapshot();
+          if (cancelled) return;
+          if (snapshot) loadState(snapshot);
+          didLoadIdb.current = true;
+        }
         if (!isFirebaseConfigured()) {
           logPublicSkip('Firebase 미설정');
           return;
         }
-        if (user && isOwnerEmail(user)) {
+        const isOwner = user !== null && isOwnerEmail(user);
+        if (isOwner) {
           try {
             const ok = await pullCloudMergeIntoStore(loadState);
             if (ok && !cancelled) console.info('[클라우드] 소유자 자동 내려받기 완료');
           } catch (e) {
-            console.warn('[클라우드] 시작 시 내려받기 실패', e);
+            console.warn('[클라우드] 내려받기 실패', e);
           }
           return;
         }
@@ -124,9 +159,16 @@ function usePersistState() {
           logPublicSkip('공개 UID/URL 없음');
           return;
         }
-        const ok = await mergePublicIntoStore(loadState);
-        if (!cancelled && ok) console.info('[스크랩북] 공개 일기 병합 완료');
-        else if (!cancelled && !ok) logPublicSkip('공개 스냅샷 비어 있음(위 로그 참고)');
+        if (!user && !didMergePublicOnce.current) {
+          const ok = await mergePublicIntoStore(loadState);
+          if (cancelled) return;
+          if (ok) {
+            didMergePublicOnce.current = true;
+            console.info('[스크랩북] 공개 일기 병합 완료');
+          } else {
+            logPublicSkip('공개 스냅샷 비어 있음(위 로그 참고)');
+          }
+        }
       } catch (error) {
         console.warn('IndexedDB 또는 공개 일기 로드 실패.', error);
       }
@@ -134,7 +176,7 @@ function usePersistState() {
     return () => {
       cancelled = true;
     };
-  }, [loadState]);
+  }, [ready, user, loadState]);
   useEffect(() => {
     const t = setInterval(() => {
       saveSnapshot(toSnapshot()).catch((error) => {
@@ -143,39 +185,6 @@ function usePersistState() {
     }, 1500);
     return () => clearInterval(t);
   }, [toSnapshot]);
-}
-
-/** 세션 중 로그인(null → 사용자) 시 클라우드 자동 내려받기 */
-function useCloudPullOnLogin() {
-  const loadState = useScrapStore((s) => s.loadSnapshot);
-  useEffect(() => {
-    if (!isFirebaseConfigured()) return;
-    let firstAuth = true;
-    let prevUser: User | null = null;
-    return watchAuthState((user) => {
-      if (firstAuth) {
-        firstAuth = false;
-        prevUser = user;
-        return;
-      }
-      const wasLoggedOut = prevUser === null;
-      prevUser = user;
-      if (!wasLoggedOut || user === null) return;
-      (async () => {
-        try {
-          if (user && isOwnerEmail(user)) {
-            const ok = await pullCloudMergeIntoStore(loadState);
-            if (ok) console.info('[클라우드] 로그인 후 소유자 자동 내려받기');
-          } else {
-            const ok = await mergePublicIntoStore(loadState);
-            if (ok) console.info('[스크랩북] 로그인 후 공개 일기 갱신');
-          }
-        } catch (e) {
-          console.warn('[클라우드] 로그인 후 동기화 실패', e);
-        }
-      })();
-    });
-  }, [loadState]);
 }
 
 /** 로그아웃 시 공개 일기만 다시 로드 */
@@ -216,7 +225,7 @@ function Header() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const location = useLocation();
-  const authUser = useFirebaseAuthUser();
+  const { user: authUser } = useAuthState();
   const hasFirebase = isFirebaseConfigured();
 
   const onLogoutClick = async () => {
@@ -371,7 +380,7 @@ function SettingsPage() {
   const [syncNote, setSyncNote] = useState('');
   const hasFirebase = useMemo(() => isFirebaseConfigured(), []);
   const [autoSync, setAutoSync] = useState(false);
-  const authUser = useFirebaseAuthUser();
+  const { user: authUser } = useAuthState();
 
   useEffect(() => {
     const u = getCurrentUser();
@@ -550,7 +559,7 @@ function SettingsPage() {
 }
 
 function AppShell() {
-  const authUser = useFirebaseAuthUser();
+  const { user: authUser } = useAuthState();
   const readOnly = Boolean(
     isFirebaseConfigured() && (!authUser || !isOwnerEmail(authUser)),
   );
@@ -570,13 +579,15 @@ function AppShell() {
 }
 
 export function App() {
-  usePersistState();
-  useCloudPullOnLogin();
+  const auth = useFirebaseAuthUser();
+  usePersistState(auth);
   usePublicReloadOnLogout();
 
   return (
-    <div className="app">
-      <AppShell />
-    </div>
+    <AuthStateContext.Provider value={auth}>
+      <div className="app">
+        <AppShell />
+      </div>
+    </AuthStateContext.Provider>
   );
 }
