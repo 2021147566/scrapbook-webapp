@@ -222,7 +222,8 @@ a {
 .book-image {
   width: 100%;
   max-height: 520px;
-  object-fit: contain;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
   margin: 8px 0;
 }
 

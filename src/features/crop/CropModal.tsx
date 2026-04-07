@@ -15,12 +15,15 @@ async function createCroppedImage(src: string, pixelCrop: Area): Promise<string>
     img.onload = () => resolve(img);
     img.onerror = reject;
   });
+  const TARGET_WIDTH = 800;
+  const TARGET_HEIGHT = 1000; // 4:5 고정 비율
+
   const canvas = document.createElement('canvas');
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  canvas.width = TARGET_WIDTH;
+  canvas.height = TARGET_HEIGHT;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 컨텍스트를 가져올 수 없습니다.');
-  addStampPath(ctx, pixelCrop.width, pixelCrop.height);
+  addStampPath(ctx, TARGET_WIDTH, TARGET_HEIGHT);
   ctx.clip();
   ctx.drawImage(
     image,
@@ -30,8 +33,8 @@ async function createCroppedImage(src: string, pixelCrop: Area): Promise<string>
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height,
+    TARGET_WIDTH,
+    TARGET_HEIGHT,
   );
   return canvas.toDataURL('image/jpeg', 0.92);
 }
