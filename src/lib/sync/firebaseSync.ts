@@ -255,6 +255,9 @@ function sanitizeSnapshotForFirestore(snapshot: PersistedSnapshot): PersistedSna
   return JSON.parse(JSON.stringify(snapshot)) as PersistedSnapshot;
 }
 
+/** Firestore 문서 전체 한도 ~1MiB — 이미지 base64가 많으면 초과하므로 큰 스냅샷은 Storage만 사용 */
+const FIRESTORE_SNAPSHOT_MAX_BYTES = 950_000;
+
 export async function pushSnapshot(snapshot: PersistedSnapshot): Promise<void> {
   ensureFirebase();
   if (!authUser) throw new Error('로그인 후 동기화할 수 있습니다.');
@@ -262,18 +265,33 @@ export async function pushSnapshot(snapshot: PersistedSnapshot): Promise<void> {
     throw new Error('편집 권한이 없습니다. 소유자 계정으로 로그인하세요.');
   }
   const clean = sanitizeSnapshotForFirestore(snapshot);
-  const firestore = getFirestore();
-  await setDoc(doc(firestore, 'scrapbooks', authUser.uid), {
-    updatedAt: Date.now(),
-    snapshot: clean,
-  });
+  const jsonStr = JSON.stringify(clean);
+  const sizeBytes = new TextEncoder().encode(jsonStr).length;
+
   const storage = getStorage();
   await uploadString(
     ref(storage, `scrapbooks/${authUser.uid}/snapshot.json`),
-    JSON.stringify(clean),
+    jsonStr,
     'raw',
     { contentType: 'application/json' },
   );
+
+  const firestore = getFirestore();
+  const docRef = doc(firestore, 'scrapbooks', authUser.uid);
+  if (sizeBytes <= FIRESTORE_SNAPSHOT_MAX_BYTES) {
+    await setDoc(docRef, {
+      updatedAt: Date.now(),
+      snapshot: clean,
+    });
+  } else {
+    console.info(
+      SCRAP_LOG,
+      `스냅샷 ${sizeBytes} bytes — Firestore 한도 초과, Storage만 저장(내려받기·공개 로드는 동일)`,
+    );
+    await setDoc(docRef, {
+      updatedAt: Date.now(),
+    });
+  }
 }
 
 /** 소유자: Firestore+Storage 병합 pull. env UID와 로그인 UID가 다르면 두 문서를 합침(공개 경로와 동기). */
