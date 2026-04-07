@@ -16,6 +16,9 @@ dist-ssr
 .env
 .env.*.local
 
+# 개인 일기 백업(실수로 저장소에 올리지 않도록)
+public/scrapbook-backup*.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
