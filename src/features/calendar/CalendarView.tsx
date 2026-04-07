@@ -13,21 +13,6 @@ function buildMonthDays(cursor: Date): dayjs.Dayjs[] {
 
 const weekLabels = ['일', '월', '화', '수', '목', '금', '토'];
 
-function mobileDayLabels(day: dayjs.Dayjs, todayKey: string): { primary: string; sub: string } {
-  const key = day.format('YYYY-MM-DD');
-  const t = dayjs(todayKey);
-  if (key === todayKey) {
-    return { primary: '오늘', sub: day.locale('ko').format('M/D ddd') };
-  }
-  if (key === t.subtract(1, 'day').format('YYYY-MM-DD')) {
-    return { primary: '어제', sub: day.locale('ko').format('M/D ddd') };
-  }
-  if (key === t.subtract(2, 'day').format('YYYY-MM-DD')) {
-    return { primary: '그저께', sub: day.locale('ko').format('M/D ddd') };
-  }
-  return { primary: `${day.date()}`, sub: day.locale('ko').format('ddd') };
-}
-
 function useCalendarMonthData() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const selectedDate = useScrapStore((s) => s.selectedDate);
@@ -215,7 +200,6 @@ export function CalendarMobileMonthScroller() {
             const items = imagesByDate[key] ?? [];
             const routines = routineByDate[key] ?? [false, false, false];
             const isToday = key === todayKey;
-            const { primary, sub } = mobileDayLabels(day, todayKey);
             return (
               <button
                 key={key}
@@ -233,12 +217,9 @@ export function CalendarMobileMonthScroller() {
                   })();
                 }}
               >
-                <div className="mobile-strip-daytag">
-                  <span className="mobile-strip-daytag-primary">{primary}</span>
-                  <span className="mobile-strip-daytag-sub">{sub}</span>
-                </div>
-                <div className="day-header day-header--mobile-strip">
-                  <span className="routine-dots">
+                <div className="mobile-strip-toprow">
+                  <span className="mobile-strip-date">{day.format('M/D')}</span>
+                  <span className="routine-dots routine-dots--mobile-strip">
                     {routines.map((done, i) => (
                       <span
                         key={`${key}-${i}`}

@@ -674,33 +674,31 @@ a {
   min-height: 0;
 }
 
-.mobile-strip-daytag {
+/* 모바일 날짜 스트립: 왼쪽 날짜(M/D) · 오른쪽 루틴 점 3개 */
+.mobile-strip-toprow {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
   margin-bottom: 4px;
-  line-height: 1.15;
+  min-height: 20px;
 }
 
-.mobile-strip-daytag-primary {
-  font-size: 11px;
+.mobile-strip-date {
+  font-size: 12px;
   font-weight: 700;
-  color: #6b4a1e;
+  color: #4b3217;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.2;
 }
 
-.mobile-strip-daytag-sub {
-  font-size: 9px;
-  color: #6b5538;
-  opacity: 0.92;
-}
-
-.day-header--mobile-strip {
-  justify-content: center;
-}
-
-.day-header--mobile-strip .routine-dots {
-  justify-content: center;
+.calendar-cell--mobile-strip .routine-dots--mobile-strip {
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 3px;
 }
 
 .mobile-sidebar-scroll {
