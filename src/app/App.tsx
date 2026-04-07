@@ -10,6 +10,7 @@ import {
 } from '../features/calendar/CalendarView';
 import { CalendarSidebar } from '../features/calendar/CalendarSidebar';
 import { BookView } from '../features/book/BookView';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useMonthShardNav } from '../hooks/useMonthShardNav';
 import { monthKeyFromDate, shardToPersisted } from '../lib/monthShard';
 import {
@@ -48,20 +49,6 @@ import { DEFAULT_ROUTINE_LABELS } from '../types';
 const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
 
 const AUTO_SYNC_STORAGE_KEY = 'scrapbook-auto-sync';
-
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const onChange = () => setMatches(mq.matches);
-    mq.addEventListener('change', onChange);
-    setMatches(mq.matches);
-    return () => mq.removeEventListener('change', onChange);
-  }, [query]);
-  return matches;
-}
 
 /** 로그인 시: 표시이름(없으면 @앞) (전체 이메일) — 설정 등 */
 function formatAccountLabel(user: User): string {
