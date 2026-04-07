@@ -29,8 +29,20 @@ export async function exportSnapshot(snapshot: PersistedSnapshot): Promise<strin
   return JSON.stringify(snapshot, null, 2);
 }
 
-export async function importSnapshot(text: string): Promise<PersistedSnapshot> {
+export function parsePersistedSnapshot(text: string): PersistedSnapshot {
   const parsed = JSON.parse(text) as PersistedSnapshot;
+  if (!parsed || typeof parsed !== 'object') throw new Error('Invalid snapshot');
+  return {
+    updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now(),
+    imagesByDate: parsed.imagesByDate ?? {},
+    diaryByDate: parsed.diaryByDate ?? {},
+    routineByDate: parsed.routineByDate ?? {},
+    routineLabels: parsed.routineLabels,
+  };
+}
+
+export async function importSnapshot(text: string): Promise<PersistedSnapshot> {
+  const parsed = parsePersistedSnapshot(text);
   await saveSnapshot(parsed);
   return parsed;
 }

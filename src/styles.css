@@ -164,6 +164,144 @@ a {
   color: #2f2518;
 }
 
+.settings-hint--ok {
+  color: #3d5a2e;
+}
+
+.settings-backup-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+  margin-bottom: 4px;
+}
+
+.settings-backup-btn {
+  flex: 1 1 160px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #b68f60;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #fff4df 0%, #ead4b1 100%);
+  color: #4b3217;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  text-align: center;
+}
+
+.settings-backup-btn.file-upload {
+  cursor: pointer;
+}
+
+.settings-backup-import {
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-backup-import input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.settings-firebase-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.settings-firebase-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.settings-firebase-row .settings-backup-btn {
+  flex: 1 1 120px;
+}
+
+.settings-firebase-primary {
+  font-weight: 600;
+  max-width: 320px;
+}
+
+.settings-firebase-logout {
+  border-color: #c49a7a;
+  background: linear-gradient(180deg, #faf6f0 0%, #e8d4c4 100%);
+}
+
+.settings-auto-sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #5b3d1e;
+  cursor: pointer;
+}
+
+.settings-sync-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: #5c4a32;
+}
+
+.topbar-guest-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(107, 85, 56, 0.22);
+}
+
+.topbar-guest-title {
+  font-weight: 700;
+  color: #4b3217;
+  font-size: 15px;
+}
+
+.topbar-guest-cta {
+  font-size: 14px;
+  font-weight: 600;
+  color: #5b3d1e;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #c4b49a;
+  background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
+}
+
+.topbar-guest-logged {
+  font-size: 13px;
+  color: #5c4a32;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-guest-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(107, 85, 56, 0.2);
+}
+
+.mobile-guest-row .topbar-guest-cta {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
 /* 달력 페이지: 그리드 + 오른쪽 사이드바 */
 .page.page--calendar {
   margin-top: 8px;

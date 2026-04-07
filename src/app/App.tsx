@@ -7,19 +7,25 @@ import { CalendarDateGrid, CalendarWeekGrid, CalendarWeekdayHeader } from '../fe
 import { CalendarSidebar } from '../features/calendar/CalendarSidebar';
 import { BookView } from '../features/book/BookView';
 import { importSnapshot, loadSnapshot, saveSnapshot } from '../lib/storage/indexeddb';
+import type { User } from 'firebase/auth';
 import {
-  completeGoogleRedirectIfAny,
+  canLoadGuestDefault,
+  fetchGuestDefaultSnapshot,
   getCurrentUser,
   isFirebaseConfigured,
   loginWithGoogle,
   logoutFirebase,
   pullSnapshot,
   pushSnapshot,
+  resolveInitialAuth,
   watchAuthState,
 } from '../lib/sync/firebaseSync';
 import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot, ScrapImage } from '../types';
 import { normalizeRoutineLabels } from '../types';
+
+/** 비로그인 기본 일기(의서) 표시용 — UI 문구 */
+const GUEST_OWNER_EMAIL = 'euiseo0531303@gmail.com';
 
 function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): PersistedSnapshot {
   const imagesByDate: PersistedSnapshot['imagesByDate'] = { ...local.imagesByDate };
@@ -68,17 +74,39 @@ function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): Per
   };
 }
 
+function useFirebaseAuthUser(): User | null {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+    return watchAuthState(setUser);
+  }, []);
+  return user;
+}
+
 function usePersistState() {
   const toSnapshot = useScrapStore((s) => s.toSnapshot);
   const loadState = useScrapStore((s) => s.loadSnapshot);
   useEffect(() => {
-    loadSnapshot()
-      .then((snapshot) => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await resolveInitialAuth();
+        if (cancelled) return;
+        const snapshot = await loadSnapshot();
+        if (cancelled) return;
         if (snapshot) loadState(snapshot);
-      })
-      .catch((error) => {
-        console.warn('IndexedDB load failed, fallback to memory state.', error);
-      });
+        if (!isFirebaseConfigured() || !canLoadGuestDefault()) return;
+        if (user) return;
+        const guest = await fetchGuestDefaultSnapshot();
+        if (!guest || cancelled) return;
+        loadState(mergeSnapshots(useScrapStore.getState().toSnapshot(), guest));
+      } catch (error) {
+        console.warn('IndexedDB 또는 게스트 일기 로드 실패.', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [loadState]);
   useEffect(() => {
     const t = setInterval(() => {
@@ -94,6 +122,7 @@ function Header() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const location = useLocation();
+  const authUser = useFirebaseAuthUser();
   return (
     <header className="topbar">
       <div className="topbar-row">
@@ -126,6 +155,16 @@ function Header() {
           </nav>
         </div>
       </div>
+      <div className="topbar-guest-row" aria-label="게스트 안내">
+        <span className="topbar-guest-title">의서의 일기</span>
+        {!authUser ? (
+          <Link className="topbar-guest-cta" to="/settings">
+            나도 일기 쓰기
+          </Link>
+        ) : (
+          <span className="topbar-guest-logged">{authUser.email ?? '로그인됨'}</span>
+        )}
+      </div>
     </header>
   );
 }
@@ -148,6 +187,7 @@ function MobileWeekTopbar() {
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
   const location = useLocation();
+  const authUser = useFirebaseAuthUser();
 
   const weekStart = dayjs(weekCursor).day(0);
   const weekEnd = weekStart.add(6, 'day');
@@ -193,6 +233,16 @@ function MobileWeekTopbar() {
         <Link to="/book">책</Link>
         <Link to="/settings">설정</Link>
       </nav>
+      <div className="mobile-guest-row" aria-label="게스트 안내">
+        <span className="topbar-guest-title">의서의 일기</span>
+        {!authUser ? (
+          <Link className="topbar-guest-cta" to="/settings">
+            나도 일기 쓰기
+          </Link>
+        ) : (
+          <span className="topbar-guest-logged">{authUser.email ?? '로그인됨'}</span>
+        )}
+      </div>
     </header>
   );
 }
@@ -227,16 +277,10 @@ function SettingsPage() {
   const toSnapshot = useScrapStore((s) => s.toSnapshot);
   const routineLabels = useScrapStore((s) => s.routineLabels);
   const setRoutineLabels = useScrapStore((s) => s.setRoutineLabels);
-  const [status, setStatus] = useState('로컬 모드');
+  const [syncNote, setSyncNote] = useState('');
   const hasFirebase = useMemo(() => isFirebaseConfigured(), []);
   const [autoSync, setAutoSync] = useState(false);
-
-  useEffect(() => {
-    if (!hasFirebase) return;
-    return watchAuthState((user) => {
-      setStatus(user ? `${user.displayName ?? user.email} 로그인` : '로그아웃 상태');
-    });
-  }, [hasFirebase]);
+  const authUser = useFirebaseAuthUser();
 
   useEffect(() => {
     if (!hasFirebase || !autoSync || !getCurrentUser()) return;
@@ -250,7 +294,7 @@ function SettingsPage() {
     return () => clearInterval(timer);
   }, [autoSync, hasFirebase, toSnapshot]);
 
-  const downloadBackup = async () => {
+  const downloadBackup = () => {
     const snapshot = toSnapshot();
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -259,6 +303,7 @@ function SettingsPage() {
     a.download = `scrapbook-backup-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    setSyncNote('백업 파일을 저장했습니다.');
   };
 
   return (
@@ -283,9 +328,12 @@ function SettingsPage() {
         ))}
       </div>
       <h3>데이터</h3>
-      <div className="row">
-        <button onClick={downloadBackup}>백업 내보내기</button>
-        <label className="file-upload">
+      <p className="settings-hint">JSON 파일로 전체 데이터를 내보내거나, 같은 형식으로 가져올 수 있습니다.</p>
+      <div className="settings-backup-row">
+        <button type="button" className="settings-backup-btn" onClick={downloadBackup}>
+          백업 내보내기
+        </button>
+        <label className="settings-backup-btn file-upload settings-backup-import">
           백업 가져오기
           <input
             type="file"
@@ -293,70 +341,122 @@ function SettingsPage() {
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              const text = await file.text();
-              const imported = await importSnapshot(text);
-              loadState(imported);
+              try {
+                const text = await file.text();
+                const imported = await importSnapshot(text);
+                loadState(imported);
+                setSyncNote('백업을 불러와 반영했습니다.');
+              } catch (err) {
+                setSyncNote(err instanceof Error ? err.message : '가져오기 실패');
+              } finally {
+                e.currentTarget.value = '';
+              }
             }}
           />
         </label>
       </div>
       <h3>동기화(Firebase)</h3>
-      <p>{hasFirebase ? '환경변수 감지됨' : '환경변수가 없어서 로컬 모드만 사용 중'}</p>
-      <div className="row">
-        <button
-          disabled={!hasFirebase}
-          onClick={async () => {
-            try {
-              const user = await loginWithGoogle();
-              if (user) {
-                setStatus(`${user.displayName ?? user.email} 로그인`);
-              } else {
-                setStatus('Google 로그인 화면으로 이동 중…');
-              }
-            } catch (e) {
-              setStatus(e instanceof Error ? e.message : '로그인 실패');
-            }
-          }}
-        >
-          Google 로그인
-        </button>
-        <button
-          disabled={!hasFirebase}
-          onClick={async () => {
-            await pushSnapshot(toSnapshot());
-            setStatus('클라우드로 업로드 완료');
-          }}
-        >
-          업로드
-        </button>
-        <button
-          disabled={!hasFirebase}
-          onClick={async () => {
-            const cloud = await pullSnapshot();
-            if (cloud) {
-              const merged = mergeSnapshots(toSnapshot(), cloud);
-              loadState(merged);
-              setStatus('클라우드 병합 완료(최신 수정 우선)');
-            }
-          }}
-        >
-          내려받기
-        </button>
-        <button
-          disabled={!hasFirebase || !getCurrentUser()}
-          onClick={async () => {
-            await logoutFirebase();
-            setStatus('로그아웃 완료');
-          }}
-        >
-          로그아웃
-        </button>
-      </div>
-      <label className="row" style={{ marginTop: 8 }}>
-        <input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />
-        자동 동기화(10초마다 업로드)
-      </label>
-      <p>{status}</p>
+      {!hasFirebase ? (
+        <p className="settings-hint">환경변수가 없어서 로컬·백업만 사용 중입니다.</p>
+      ) : (
+        <>
+          {!authUser && canLoadGuestDefault() ? (
+            <p className="settings-hint">
+              비로그인 시 <strong>{GUEST_OWNER_EMAIL}</strong> 님의 공개 일기가 기본으로 합쳐져 보여요. 나만의 일기를 쓰려면 아래에서
+              Google로 로그인하세요.
+            </p>
+          ) : null}
+          {!authUser && !canLoadGuestDefault() ? (
+            <p className="settings-hint">Google 로그인 후 클라우드에 올리고 다른 기기와 맞출 수 있어요.</p>
+          ) : null}
+          {authUser ? (
+            <p className="settings-hint settings-hint--ok">
+              <strong>{authUser.displayName ?? authUser.email}</strong> 로그인 중
+            </p>
+          ) : null}
+          <div className="settings-firebase-actions">
+            {!authUser ? (
+              <button
+                type="button"
+                className="settings-backup-btn settings-firebase-primary"
+                disabled={!hasFirebase}
+                onClick={async () => {
+                  try {
+                    const user = await loginWithGoogle();
+                    if (user) {
+                      setSyncNote(`${user.displayName ?? user.email} 로그인됨`);
+                    } else {
+                      setSyncNote('Google 로그인 화면으로 이동 중…');
+                    }
+                  } catch (e) {
+                    setSyncNote(e instanceof Error ? e.message : '로그인 실패');
+                  }
+                }}
+              >
+                Google 로그인
+              </button>
+            ) : (
+              <>
+                <div className="settings-firebase-row">
+                  <button
+                    type="button"
+                    className="settings-backup-btn"
+                    onClick={async () => {
+                      try {
+                        await pushSnapshot(toSnapshot());
+                        setSyncNote('클라우드로 업로드 완료');
+                      } catch (e) {
+                        setSyncNote(e instanceof Error ? e.message : '업로드 실패');
+                      }
+                    }}
+                  >
+                    업로드
+                  </button>
+                  <button
+                    type="button"
+                    className="settings-backup-btn"
+                    onClick={async () => {
+                      try {
+                        const cloud = await pullSnapshot();
+                        if (cloud) {
+                          const merged = mergeSnapshots(toSnapshot(), cloud);
+                          loadState(merged);
+                          setSyncNote('클라우드 병합 완료(최신 수정 우선)');
+                        } else {
+                          setSyncNote('클라우드에 저장된 데이터가 없습니다.');
+                        }
+                      } catch (e) {
+                        setSyncNote(e instanceof Error ? e.message : '내려받기 실패');
+                      }
+                    }}
+                  >
+                    내려받기
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="settings-backup-btn settings-firebase-logout"
+                  onClick={async () => {
+                    try {
+                      await logoutFirebase();
+                      setSyncNote('로그아웃했습니다.');
+                    } catch (e) {
+                      setSyncNote(e instanceof Error ? e.message : '로그아웃 실패');
+                    }
+                  }}
+                >
+                  로그아웃
+                </button>
+                <label className="settings-auto-sync">
+                  <input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />
+                  자동 동기화(10초마다 업로드)
+                </label>
+              </>
+            )}
+          </div>
+        </>
+      )}
+      {syncNote ? <p className="settings-sync-note">{syncNote}</p> : null}
     </section>
   );
 }
@@ -364,10 +464,6 @@ function SettingsPage() {
 export function App() {
   usePersistState();
   const location = useLocation();
-  useEffect(() => {
-    if (!isFirebaseConfigured()) return;
-    void completeGoogleRedirectIfAny();
-  }, []);
 
   return (
     <div className="app">

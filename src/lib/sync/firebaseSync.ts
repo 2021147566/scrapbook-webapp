@@ -10,6 +10,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
+import { parsePersistedSnapshot } from '../storage/indexeddb';
 import { getStorage, ref, uploadString } from 'firebase/storage';
 import type { PersistedSnapshot } from '../../types';
 
@@ -104,6 +105,54 @@ export function watchAuthState(onChange: (user: User | null) => void): () => voi
     authUser = user;
     onChange(user);
   });
+}
+
+/** 리다이렉트 로그인 처리 후 첫 인증 상태(세션 복원 포함) */
+export async function resolveInitialAuth(): Promise<User | null> {
+  if (!isFirebaseConfigured()) return null;
+  await completeGoogleRedirectIfAny();
+  return new Promise((resolve) => {
+    ensureFirebase();
+    const unsub = onAuthStateChanged(getAuth(), (user) => {
+      unsub();
+      authUser = user;
+      resolve(user);
+    });
+  });
+}
+
+/** 비로그인 기본 일기: 공개 URL 또는 Firestore 공개 읽기 UID 중 하나 필요 */
+export function canLoadGuestDefault(): boolean {
+  return Boolean(
+    import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim() ||
+      import.meta.env.VITE_GUEST_DEFAULT_UID?.trim(),
+  );
+}
+
+export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | null> {
+  const url = import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim();
+  if (url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const text = await res.text();
+      return parsePersistedSnapshot(text);
+    } catch {
+      return null;
+    }
+  }
+  const uid = import.meta.env.VITE_GUEST_DEFAULT_UID?.trim();
+  if (!uid) return null;
+  try {
+    ensureFirebase();
+    const firestore = getFirestore();
+    const snapshotDoc = await getDoc(doc(firestore, 'scrapbooks', uid));
+    if (!snapshotDoc.exists()) return null;
+    const data = snapshotDoc.data() as { snapshot?: PersistedSnapshot };
+    return data.snapshot ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function pushSnapshot(snapshot: PersistedSnapshot): Promise<void> {
