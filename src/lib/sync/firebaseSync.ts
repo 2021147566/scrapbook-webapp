@@ -136,6 +136,33 @@ export function canLoadGuestDefault(): boolean {
 
 const GUEST_LOG = '[게스트 일기]';
 
+/** 브라우저 콘솔에서 게스트 로드 조건을 바로 확인 (배포 디버깅용) */
+export function logGuestBootstrapLine(): void {
+  if (!isFirebaseConfigured()) {
+    console.info(GUEST_LOG, 'Firebase env 없음 → 게스트 경로 사용 안 함');
+    return;
+  }
+  const url = import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim();
+  if (url) {
+    console.info(GUEST_LOG, '소스: VITE_PUBLIC_GUEST_SNAPSHOT_URL', url.length > 80 ? `${url.slice(0, 80)}…` : url);
+    return;
+  }
+  const uid = guestDefaultUid();
+  if (!uid) {
+    console.warn(
+      GUEST_LOG,
+      'UID 없음 — GitHub Actions에 VITE_GUEST_DEFAULT_UID 또는 guest.ts GUEST_DEFAULT_UID_FALLBACK 필요',
+    );
+    return;
+  }
+  console.info(GUEST_LOG, '소스: Firestore', `scrapbooks/${uid}`);
+}
+
+/** 콘솔 필터에 `게스트` 입력 시 위 로그만 모아볼 수 있음 */
+export function logGuestSkip(reason: string): void {
+  console.info(GUEST_LOG, '건너뜀:', reason);
+}
+
 export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | null> {
   const url = import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim();
   if (url) {
@@ -146,7 +173,9 @@ export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | n
         return null;
       }
       const text = await res.text();
-      return parsePersistedSnapshot(text);
+      const parsed = parsePersistedSnapshot(text);
+      console.info(GUEST_LOG, '공개 URL에서 스냅샷 파싱 성공');
+      return parsed;
     } catch (e) {
       console.warn(GUEST_LOG, '스냅샷 URL fetch 실패', url, e);
       return null;
@@ -180,6 +209,7 @@ export async function fetchGuestDefaultSnapshot(): Promise<PersistedSnapshot | n
       );
       return null;
     }
+    console.info(GUEST_LOG, 'Firestore에서 스냅샷 로드 성공', docPath);
     return data.snapshot;
   } catch (e) {
     const detail =

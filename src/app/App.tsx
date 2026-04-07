@@ -13,6 +13,8 @@ import {
   fetchGuestDefaultSnapshot,
   getCurrentUser,
   isFirebaseConfigured,
+  logGuestBootstrapLine,
+  logGuestSkip,
   loginWithGoogle,
   logoutFirebase,
   pullSnapshot,
@@ -134,16 +136,31 @@ function usePersistState() {
     let cancelled = false;
     (async () => {
       try {
+        logGuestBootstrapLine();
         const user = await resolveInitialAuth();
         if (cancelled) return;
         const snapshot = await loadSnapshot();
         if (cancelled) return;
         if (snapshot) loadState(snapshot);
-        if (!isFirebaseConfigured() || !canLoadGuestDefault()) return;
-        if (user) return;
+        if (!isFirebaseConfigured()) {
+          logGuestSkip('Firebase 미설정');
+          return;
+        }
+        if (!canLoadGuestDefault()) {
+          logGuestSkip('게스트 URL/UID 없음');
+          return;
+        }
+        if (user) {
+          logGuestSkip('이미 로그인됨 → 게스트 병합 안 함');
+          return;
+        }
         const guest = await fetchGuestDefaultSnapshot();
-        if (!guest || cancelled) return;
+        if (!guest || cancelled) {
+          if (!cancelled && !guest) logGuestSkip('게스트 스냅샷이 비어 있음(위 경고 참고)');
+          return;
+        }
         loadState(mergeSnapshots(useScrapStore.getState().toSnapshot(), guest));
+        console.info('[게스트 일기] 로컬 상태에 병합 완료');
       } catch (error) {
         console.warn('IndexedDB 또는 게스트 일기 로드 실패.', error);
       }
