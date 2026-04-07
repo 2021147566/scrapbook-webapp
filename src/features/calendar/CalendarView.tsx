@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { useMemo } from 'react';
 import clsx from 'clsx';
+import { useMonthShardNav } from '../../hooks/useMonthShardNav';
 import { useReadOnly } from '../../context/ReadOnlyContext';
 import { useScrapStore } from '../../store/scrapStore';
 import { effectiveRoutineLabels } from '../../types';
@@ -60,6 +61,8 @@ export function CalendarWeekdayHeader() {
 /** 달력 날짜 칸 (레이아웃 그리드 2행, 사이드바와 같은 행 시작) */
 export function CalendarDateGrid() {
   const readOnly = useReadOnly();
+  const goToMonthShard = useMonthShardNav();
+  const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const {
     monthDays,
     leadingBlanks,
@@ -90,7 +93,13 @@ export function CalendarDateGrid() {
               selected: key === selectedDate,
               today: isToday,
             })}
-            onClick={() => setSelectedDate(key)}
+            onClick={() => {
+              void (async () => {
+                await goToMonthShard(day.toDate());
+                setMonthCursor(day.startOf('month').toDate());
+                setSelectedDate(key);
+              })();
+            }}
           >
             <div className="day-header">
               <span className="day-number">{day.date()}</span>
@@ -176,6 +185,8 @@ function useWeekCalendarData() {
 /** 모바일 주간 뷰: 이번 주 7칸만 */
 export function CalendarWeekGrid() {
   const readOnly = useReadOnly();
+  const goToMonthShard = useMonthShardNav();
+  const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const {
     weekDays,
     selectedDate,
@@ -202,7 +213,13 @@ export function CalendarWeekGrid() {
               selected: key === selectedDate,
               today: isToday,
             })}
-            onClick={() => setSelectedDate(key)}
+            onClick={() => {
+              void (async () => {
+                await goToMonthShard(day.toDate());
+                setMonthCursor(day.startOf('month').toDate());
+                setSelectedDate(key);
+              })();
+            }}
           >
             <div className="day-header">
               <span className="day-number">{day.date()}</span>

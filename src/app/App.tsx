@@ -6,7 +6,18 @@ import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CalendarDateGrid, CalendarWeekGrid, CalendarWeekdayHeader } from '../features/calendar/CalendarView';
 import { CalendarSidebar } from '../features/calendar/CalendarSidebar';
 import { BookView } from '../features/book/BookView';
-import { importSnapshot, loadSnapshot, saveSnapshot } from '../lib/storage/indexeddb';
+import { useMonthShardNav } from '../hooks/useMonthShardNav';
+import { monthKeyFromDate, shardToPersisted } from '../lib/monthShard';
+import {
+  importSnapshot,
+  loadMeta,
+  loadMonthShard,
+  loadSnapshot,
+  mergeAllMonthShardsFromIDB,
+  replaceAllShardsFromSnapshot,
+  saveSnapshot,
+  switchMonthShard,
+} from '../lib/storage/indexeddb';
 import { mergeSnapshots } from '../lib/snapshotMerge';
 import type { User } from 'firebase/auth';
 import { isOwnerEmail, OWNER_EMAIL } from '../config/scrapbookOwner';
@@ -70,20 +81,42 @@ function emptyPersistedSnapshot(): PersistedSnapshot {
   };
 }
 
-/** 소유자 전용: 클라우드 pull → 로컬 병합 */
-async function pullCloudMergeIntoStore(loadState: (s: PersistedSnapshot) => void): Promise<boolean> {
+/** 소유자 전용: 클라우드 pull → IDB 월 샤드 병합 후 현재 활성 월만 메모리 로드 */
+async function pullCloudMergeIntoStore(): Promise<boolean> {
   const cloud = await pullSnapshot();
   if (!cloud) return false;
-  loadState(mergeSnapshots(useScrapStore.getState().toSnapshot(), cloud));
+  const local = await mergeAllMonthShardsFromIDB();
+  const merged = mergeSnapshots(local, cloud);
+  await replaceAllShardsFromSnapshot(merged);
+  const meta = await loadMeta();
+  const shard = await loadMonthShard(meta.lastActiveMonthKey);
+  const s = useScrapStore.getState();
+  s.loadSnapshot(shardToPersisted(shard, meta.routineLabels));
+  s.setLoadedMonthKey(meta.lastActiveMonthKey);
+  s.setMonthCursor(dayjs(meta.lastActiveMonthKey + '-01').toDate());
+  if (!s.selectedDate.startsWith(meta.lastActiveMonthKey)) {
+    s.setSelectedDate(dayjs(meta.lastActiveMonthKey + '-01').format('YYYY-MM-DD'));
+  }
   return true;
 }
 
 /** 공개 일기(모든 방문자) */
-async function mergePublicIntoStore(loadState: (s: PersistedSnapshot) => void): Promise<boolean> {
+async function mergePublicIntoStore(): Promise<boolean> {
   if (!canLoadPublicScrapbook()) return false;
   const pub = await fetchPublicScrapbookSnapshot();
   if (!pub) return false;
-  loadState(mergeSnapshots(useScrapStore.getState().toSnapshot(), pub));
+  const local = await mergeAllMonthShardsFromIDB();
+  const merged = mergeSnapshots(local, pub);
+  await replaceAllShardsFromSnapshot(merged);
+  const meta = await loadMeta();
+  const shard = await loadMonthShard(meta.lastActiveMonthKey);
+  const s = useScrapStore.getState();
+  s.loadSnapshot(shardToPersisted(shard, meta.routineLabels));
+  s.setLoadedMonthKey(meta.lastActiveMonthKey);
+  s.setMonthCursor(dayjs(meta.lastActiveMonthKey + '-01').toDate());
+  if (!s.selectedDate.startsWith(meta.lastActiveMonthKey)) {
+    s.setSelectedDate(dayjs(meta.lastActiveMonthKey + '-01').format('YYYY-MM-DD'));
+  }
   return true;
 }
 
@@ -127,6 +160,10 @@ function useFirebaseAuthUser(): AuthState {
 function usePersistState(auth: AuthState) {
   const toSnapshot = useScrapStore((s) => s.toSnapshot);
   const loadState = useScrapStore((s) => s.loadSnapshot);
+  const setLoadedMonthKey = useScrapStore((s) => s.setLoadedMonthKey);
+  const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
+  const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
+  const loadedMonthKey = useScrapStore((s) => s.loadedMonthKey);
   const { user, ready } = auth;
   const didLoadIdb = useRef(false);
   const didMergePublicOnce = useRef(false);
@@ -138,9 +175,18 @@ function usePersistState(auth: AuthState) {
       try {
         logPublicBootstrapLine();
         if (!didLoadIdb.current) {
-          const snapshot = await loadSnapshot();
+          const res = await loadSnapshot();
           if (cancelled) return;
-          if (snapshot) loadState(snapshot);
+          if (res) {
+            loadState(res.snapshot);
+            setLoadedMonthKey(res.monthKey);
+            const mc = dayjs(`${res.monthKey}-01`).toDate();
+            setMonthCursor(mc);
+            const sel = useScrapStore.getState().selectedDate;
+            if (!sel.startsWith(res.monthKey)) {
+              setSelectedDate(dayjs(`${res.monthKey}-01`).format('YYYY-MM-DD'));
+            }
+          }
           didLoadIdb.current = true;
         }
         if (!isFirebaseConfigured()) {
@@ -150,7 +196,7 @@ function usePersistState(auth: AuthState) {
         const isOwner = user !== null && isOwnerEmail(user);
         if (isOwner) {
           try {
-            const ok = await pullCloudMergeIntoStore(loadState);
+            const ok = await pullCloudMergeIntoStore();
             if (ok && !cancelled) console.info('[클라우드] 소유자 자동 내려받기 완료');
           } catch (e) {
             console.warn('[클라우드] 내려받기 실패', e);
@@ -162,7 +208,7 @@ function usePersistState(auth: AuthState) {
           return;
         }
         if (!user && !didMergePublicOnce.current) {
-          const ok = await mergePublicIntoStore(loadState);
+          const ok = await mergePublicIntoStore();
           if (cancelled) return;
           if (ok) {
             didMergePublicOnce.current = true;
@@ -178,20 +224,20 @@ function usePersistState(auth: AuthState) {
     return () => {
       cancelled = true;
     };
-  }, [ready, user, loadState]);
+  }, [ready, user, loadState, setLoadedMonthKey, setMonthCursor, setSelectedDate]);
   useEffect(() => {
     const t = setInterval(() => {
-      saveSnapshot(toSnapshot()).catch((error) => {
+      const mk = useScrapStore.getState().loadedMonthKey;
+      saveSnapshot(toSnapshot(), mk).catch((error) => {
         console.warn('IndexedDB save skipped:', error);
       });
     }, 1500);
     return () => clearInterval(t);
-  }, [toSnapshot]);
+  }, [toSnapshot, loadedMonthKey]);
 }
 
 /** 로그아웃 시 공개 일기만 다시 로드 */
 function usePublicReloadOnLogout() {
-  const loadState = useScrapStore((s) => s.loadSnapshot);
   useEffect(() => {
     if (!isFirebaseConfigured()) return;
     let firstAuth = true;
@@ -210,25 +256,55 @@ function usePublicReloadOnLogout() {
         try {
           const pub = await fetchPublicScrapbookSnapshot();
           if (pub) {
-            loadState(mergeSnapshots(emptyPersistedSnapshot(), pub));
+            await replaceAllShardsFromSnapshot(pub);
           } else {
             console.warn('[스크랩북] 로그아웃 후 공개 스냅샷 없음 — 로컬 임시 편집을 비우고 공개 뷰로 맞춤');
-            loadState(emptyPersistedSnapshot());
+            await replaceAllShardsFromSnapshot(emptyPersistedSnapshot());
+          }
+          const meta = await loadMeta();
+          const shard = await loadMonthShard(meta.lastActiveMonthKey);
+          const s = useScrapStore.getState();
+          s.loadSnapshot(shardToPersisted(shard, meta.routineLabels));
+          s.setLoadedMonthKey(meta.lastActiveMonthKey);
+          s.setMonthCursor(dayjs(`${meta.lastActiveMonthKey}-01`).toDate());
+          if (!s.selectedDate.startsWith(meta.lastActiveMonthKey)) {
+            s.setSelectedDate(dayjs(`${meta.lastActiveMonthKey}-01`).format('YYYY-MM-DD'));
           }
         } catch (e) {
           console.warn('로그아웃 후 공개 일기 복원 실패', e);
         }
       })();
     });
-  }, [loadState]);
+  }, []);
 }
 
 function Header() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
+  const loadedMonthKey = useScrapStore((s) => s.loadedMonthKey);
+  const toSnapshot = useScrapStore((s) => s.toSnapshot);
+  const loadState = useScrapStore((s) => s.loadSnapshot);
+  const setLoadedMonthKey = useScrapStore((s) => s.setLoadedMonthKey);
+  const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
+  const [monthBusy, setMonthBusy] = useState(false);
   const location = useLocation();
   const { user: authUser } = useAuthState();
   const hasFirebase = isFirebaseConfigured();
+
+  const onMonthNav = async (delta: number) => {
+    if (monthBusy) return;
+    setMonthBusy(true);
+    try {
+      const next = dayjs(monthCursor).add(delta, 'month').toDate();
+      const shard = await switchMonthShard(loadedMonthKey, toSnapshot(), next);
+      loadState(shard);
+      setLoadedMonthKey(monthKeyFromDate(next));
+      setMonthCursor(next);
+      setSelectedDate(dayjs(next).format('YYYY-MM-DD'));
+    } finally {
+      setMonthBusy(false);
+    }
+  };
 
   const onLogoutClick = async () => {
     if (!hasFirebase) return;
@@ -243,11 +319,11 @@ function Header() {
     <header className="topbar">
       <div className="topbar-row">
         <div className="topbar-month row">
-          <button type="button" onClick={() => setMonthCursor(dayjs(monthCursor).subtract(1, 'month').toDate())}>
+          <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(-1)}>
             ◀
           </button>
           <strong>{dayjs(monthCursor).locale('en').format('YYYY MMMM')}</strong>
-          <button type="button" onClick={() => setMonthCursor(dayjs(monthCursor).add(1, 'month').toDate())}>
+          <button type="button" disabled={monthBusy} onClick={() => void onMonthNav(1)}>
             ▶
           </button>
         </div>
@@ -292,6 +368,7 @@ function CalendarWeekStrip() {
   const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
+  const goToMonthShard = useMonthShardNav();
 
   const weekStart = dayjs(weekCursor).day(0);
   const weekEnd = weekStart.add(6, 'day');
@@ -299,17 +376,23 @@ function CalendarWeekStrip() {
 
   const shiftWeek = (delta: number) => {
     const nextWeekStart = dayjs(weekCursor).add(delta, 'week').day(0);
-    setWeekCursor(nextWeekStart.toDate());
-    setMonthCursor(nextWeekStart.startOf('month').toDate());
-    setSelectedDate(nextWeekStart.format('YYYY-MM-DD'));
+    void (async () => {
+      await goToMonthShard(nextWeekStart.toDate());
+      setWeekCursor(nextWeekStart.toDate());
+      setMonthCursor(nextWeekStart.startOf('month').toDate());
+      setSelectedDate(nextWeekStart.format('YYYY-MM-DD'));
+    })();
   };
 
   const goToday = () => {
     const t = dayjs();
     const sun = t.day(0);
-    setWeekCursor(sun.toDate());
-    setMonthCursor(t.startOf('month').toDate());
-    setSelectedDate(t.format('YYYY-MM-DD'));
+    void (async () => {
+      await goToMonthShard(sun.toDate());
+      setWeekCursor(sun.toDate());
+      setMonthCursor(t.startOf('month').toDate());
+      setSelectedDate(t.format('YYYY-MM-DD'));
+    })();
   };
 
   return (
@@ -337,6 +420,7 @@ function CalendarPage() {
   const isMobileLayout = useMediaQuery(MOBILE_CALENDAR_MEDIA);
   const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
+  const goToMonthShard = useMonthShardNav();
   const readOnly = useReadOnly();
   const pageRo = readOnly ? ' page--readonly' : '';
 
@@ -346,7 +430,8 @@ function CalendarPage() {
     const w = dayjs(d).day(0).toDate();
     setWeekCursor(w);
     setMonthCursor(dayjs(d).startOf('month').toDate());
-  }, [isMobileLayout, setWeekCursor, setMonthCursor]);
+    void goToMonthShard(dayjs(d).toDate());
+  }, [isMobileLayout, setWeekCursor, setMonthCursor, goToMonthShard]);
 
   if (isMobileLayout) {
     return (
@@ -376,7 +461,6 @@ function CalendarPage() {
 
 function SettingsPage() {
   const loadState = useScrapStore((s) => s.loadSnapshot);
-  const toSnapshot = useScrapStore((s) => s.toSnapshot);
   const routineLabels = useScrapStore((s) => s.routineLabels);
   const setRoutineLabels = useScrapStore((s) => s.setRoutineLabels);
   const [syncNote, setSyncNote] = useState('');
@@ -389,24 +473,31 @@ function SettingsPage() {
     if (!hasFirebase || !autoSync || !u || !isOwnerEmail(u)) return;
     const timer = setInterval(async () => {
       try {
-        await pushSnapshot(toSnapshot());
+        const full = await mergeAllMonthShardsFromIDB();
+        await pushSnapshot(full);
       } catch {
         // 네트워크 단절 시 다음 주기에 재시도.
       }
     }, 10000);
     return () => clearInterval(timer);
-  }, [autoSync, hasFirebase, toSnapshot]);
+  }, [autoSync, hasFirebase]);
 
   const downloadBackup = () => {
-    const snapshot = toSnapshot();
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `scrapbook-backup-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setSyncNote('백업 파일을 저장했습니다.');
+    void (async () => {
+      try {
+        const snapshot = await mergeAllMonthShardsFromIDB();
+        const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `scrapbook-backup-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setSyncNote('백업 파일을 저장했습니다.');
+      } catch (e) {
+        setSyncNote(e instanceof Error ? e.message : '백업 내보내기 실패');
+      }
+    })();
   };
 
   if (!authUser) {
@@ -499,6 +590,10 @@ function SettingsPage() {
                 const text = await file.text();
                 const imported = await importSnapshot(text);
                 loadState(imported);
+                const meta = await loadMeta();
+                const st = useScrapStore.getState();
+                st.setLoadedMonthKey(meta.lastActiveMonthKey);
+                st.setMonthCursor(dayjs(`${meta.lastActiveMonthKey}-01`).toDate());
                 setSyncNote('백업을 불러와 반영했습니다.');
               } catch (err) {
                 setSyncNote(err instanceof Error ? err.message : '가져오기 실패');
@@ -522,7 +617,8 @@ function SettingsPage() {
                 className="settings-backup-btn"
                 onClick={async () => {
                   try {
-                    await pushSnapshot(toSnapshot());
+                    const full = await mergeAllMonthShardsFromIDB();
+                    await pushSnapshot(full);
                     setSyncNote('클라우드로 업로드 완료');
                   } catch (e) {
                     setSyncNote(e instanceof Error ? e.message : '업로드 실패');
@@ -536,7 +632,7 @@ function SettingsPage() {
                 className="settings-backup-btn"
                 onClick={async () => {
                   try {
-                    const ok = await pullCloudMergeIntoStore(loadState);
+                    const ok = await pullCloudMergeIntoStore();
                     setSyncNote(
                       ok ? '클라우드 병합 완료(최신 수정 우선)' : '클라우드에 저장된 데이터가 없습니다.',
                     );

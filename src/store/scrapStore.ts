@@ -1,4 +1,6 @@
+import dayjs from 'dayjs';
 import { create } from 'zustand';
+import { filterRecordByMonth, type MonthKey } from '../lib/monthShard';
 import type { DateKey, DiaryEntry, PersistedSnapshot, ScrapImage } from '../types';
 import { DEFAULT_ROUTINE_LABELS, effectiveRoutineLabels, normalizeRoutineLabels } from '../types';
 
@@ -8,6 +10,8 @@ function dayKey(d: Date) {
 
 interface ScrapState {
   monthCursor: Date;
+  /** IndexedDB에 로드된 월(YYYY-MM) — 메모리에는 이 달 데이터만 유지 */
+  loadedMonthKey: MonthKey;
   /** 모바일 주간 뷰: 이번 주를 가리키는 임의의 날(보통 해당 주 일요일) */
   weekCursor: Date;
   selectedDate: DateKey;
@@ -16,6 +20,7 @@ interface ScrapState {
   routineByDate: Record<DateKey, boolean[]>;
   routineLabels: [string, string, string];
   setMonthCursor: (date: Date) => void;
+  setLoadedMonthKey: (key: MonthKey) => void;
   setWeekCursor: (date: Date) => void;
   setSelectedDate: (date: DateKey) => void;
   addImage: (date: DateKey, dataUrl: string) => void;
@@ -32,9 +37,11 @@ interface ScrapState {
 }
 
 const todayKey = dayKey(new Date());
+const initialMonthKey = dayjs().format('YYYY-MM');
 
 export const useScrapStore = create<ScrapState>((set, get) => ({
   monthCursor: new Date(),
+  loadedMonthKey: initialMonthKey,
   weekCursor: new Date(),
   selectedDate: todayKey,
   imagesByDate: {},
@@ -42,6 +49,7 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
   routineByDate: {},
   routineLabels: [...DEFAULT_ROUTINE_LABELS],
   setMonthCursor: (date) => set({ monthCursor: date }),
+  setLoadedMonthKey: (key) => set({ loadedMonthKey: key }),
   setWeekCursor: (date) => set({ weekCursor: date }),
   setSelectedDate: (date) => set({ selectedDate: date }),
   addImage: (date, dataUrl) =>
@@ -137,11 +145,12 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
     }),
   toSnapshot: () => {
     const state = get();
+    const mk = state.loadedMonthKey;
     return {
       updatedAt: Date.now(),
-      imagesByDate: state.imagesByDate,
-      diaryByDate: state.diaryByDate,
-      routineByDate: state.routineByDate,
+      imagesByDate: filterRecordByMonth(state.imagesByDate, mk),
+      diaryByDate: filterRecordByMonth(state.diaryByDate, mk),
+      routineByDate: filterRecordByMonth(state.routineByDate, mk),
       routineLabels: [...effectiveRoutineLabels(state.routineLabels)],
     };
   },
