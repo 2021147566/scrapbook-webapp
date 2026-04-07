@@ -451,11 +451,11 @@ button:hover {
   color: #6b7280;
 }
 
-/* 필름 인화 프레임 — 세로 스택, 한 줄에 한 장 */
+/* 필름 인화 프레임 — 세로 스택, 한 줄에 한 장 (전체 약 70% 스케일) */
 .book-film-stage {
   position: relative;
   width: 100%;
-  max-width: min(100%, 620px);
+  max-width: min(100%, 434px);
   margin: 0 auto;
 }
 
@@ -510,18 +510,23 @@ button:hover {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  gap: clamp(14px, 2.6vh, 26px);
+  gap: 0;
   width: 100%;
-  max-width: 620px;
+  max-width: 434px;
   padding: 8px 0 20px;
   box-sizing: border-box;
 }
 
 .book-film-stage--vertical .film-frame {
   position: relative;
-  width: min(100%, 560px);
+  width: min(100%, 392px);
   flex: 0 0 auto;
   margin: 0 auto;
+}
+
+/* 아래 프레임을 위로 겹쳐 스택 느낌 (사진 영역 위주) */
+.book-film-stage--vertical .film-frame:not(:first-child) {
+  margin-top: -52px;
 }
 
 /* 살짝 기울임 (1:1 비율 유지) */
@@ -539,6 +544,25 @@ button:hover {
 
 .book-film-stage--vertical .film-frame:nth-child(4n) {
   transform: rotate(6deg);
+}
+
+/* 2~3장: 왼쪽/오른쪽 번갈아 (홀/짝) */
+.book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:nth-child(odd) {
+  align-self: flex-start;
+  margin-left: 0;
+  margin-right: auto;
+  transform: rotate(-5deg) translateX(-12px);
+}
+
+.book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:nth-child(even) {
+  align-self: flex-end;
+  margin-left: auto;
+  margin-right: 0;
+  transform: rotate(5deg) translateX(12px);
+}
+
+.book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
+  margin-top: -58px;
 }
 
 /* 책 모드에서는 사진 주변 검은 매트 제거 */
