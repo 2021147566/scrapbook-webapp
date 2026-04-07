@@ -37,10 +37,21 @@ function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): Per
     if (!prev || prev.updatedAt < entry.updatedAt) diaryByDate[date] = entry;
   }
 
+  const routineByDate = { ...local.routineByDate };
+  for (const [date, routines] of Object.entries(cloud.routineByDate ?? {})) {
+    const prev = routineByDate[date] ?? [false, false, false];
+    routineByDate[date] = [
+      Boolean(prev[0] || routines?.[0]),
+      Boolean(prev[1] || routines?.[1]),
+      Boolean(prev[2] || routines?.[2]),
+    ];
+  }
+
   return {
     updatedAt: Math.max(local.updatedAt ?? 0, cloud.updatedAt ?? 0, Date.now()),
     imagesByDate,
     diaryByDate,
+    routineByDate,
   };
 }
 
@@ -107,12 +118,15 @@ function Header() {
 function CalendarPage() {
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
+  const routineByDate = useScrapStore((s) => s.routineByDate);
   const addImage = useScrapStore((s) => s.addImage);
   const removeImage = useScrapStore((s) => s.removeImage);
   const moveImage = useScrapStore((s) => s.moveImage);
+  const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
   const [pending, setPending] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
+  const routines = routineByDate[selectedDate] ?? [false, false, false];
 
   const onFiles = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -140,6 +154,20 @@ function CalendarPage() {
         </label>
         <small>Ctrl+V로 이미지 붙여넣기 가능</small>
       </section>
+      <section className="routine-control">
+        <small>루틴 점 표시</small>
+        <div className="row">
+          {['운동', '공부', '식단'].map((label, idx) => (
+            <button
+              key={label}
+              className={routines[idx] ? `routine-btn active dot-${idx + 1}` : `routine-btn dot-${idx + 1}`}
+              onClick={() => toggleRoutine(selectedDate, idx)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
       <CalendarView />
       <section className="selected-images">
         <h3>{selectedDate} 사진</h3>
@@ -158,7 +186,7 @@ function CalendarPage() {
                 setDragIndex(null);
               }}
             >
-              <img src={img.dataUrl} alt="" className="stamp-clip" />
+              <img src={img.dataUrl} alt="" />
               <div className="image-card-actions">
                 <button onClick={() => removeImage(selectedDate, img.id)}>삭제</button>
                 <button disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>

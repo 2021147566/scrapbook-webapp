@@ -18,4 +18,5 @@ export interface PersistedSnapshot {
   updatedAt: number;
   imagesByDate: Record<DateKey, ScrapImage[]>;
   diaryByDate: Record<DateKey, DiaryEntry>;
+  routineByDate: Record<DateKey, boolean[]>;
 }

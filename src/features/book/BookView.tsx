@@ -33,7 +33,7 @@ export function BookView() {
                     <img
                       src={currentImages[2].dataUrl}
                       alt=""
-                      className="stack-image-back layer-far stamp-clip"
+                      className="stack-image-back layer-far"
                       aria-hidden
                     />
                   ) : null}
@@ -41,11 +41,11 @@ export function BookView() {
                     <img
                       src={currentImages[1].dataUrl}
                       alt=""
-                      className="stack-image-back layer-mid stamp-clip"
+                      className="stack-image-back layer-mid"
                       aria-hidden
                     />
                   ) : null}
-                  <img src={currentImage.dataUrl} alt="" className="book-image stamp-clip" />
+                  <img src={currentImage.dataUrl} alt="" className="book-image" />
                 </div>
                 {currentImages.length > 1 ? (
                   <small className="book-count">이 날의 사진 {currentImages.length}장</small>

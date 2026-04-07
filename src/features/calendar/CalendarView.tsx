@@ -12,6 +12,7 @@ export function CalendarView() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const imagesByDate = useScrapStore((s) => s.imagesByDate);
+  const routineByDate = useScrapStore((s) => s.routineByDate);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
   const grid = useMemo(() => buildGrid(monthCursor), [monthCursor]);
   const currentMonth = dayjs(monthCursor).month();
@@ -21,6 +22,7 @@ export function CalendarView() {
       {grid.map((day) => {
         const key = day.format('YYYY-MM-DD');
         const items = imagesByDate[key] ?? [];
+        const routines = routineByDate[key] ?? [false, false, false];
         return (
           <button
             key={key}
@@ -30,7 +32,14 @@ export function CalendarView() {
             })}
             onClick={() => setSelectedDate(key)}
           >
-            <span className="day-number">{day.date()}</span>
+            <div className="day-header">
+              <span className="day-number">{day.date()}</span>
+              <span className="routine-dots" aria-hidden>
+                {routines.map((done, i) => (
+                  <span key={`${key}-${i}`} className={clsx('routine-dot', `dot-${i + 1}`, { done })} />
+                ))}
+              </span>
+            </div>
             <div className="stack-preview">
               {items.length > 0 ? (
                 <div className="photo-stack">
@@ -38,7 +47,7 @@ export function CalendarView() {
                     <img
                       src={items[2].dataUrl}
                       alt=""
-                      className="stack-image-back layer-far stamp-clip"
+                      className="stack-image-back layer-far"
                       aria-hidden
                     />
                   ) : null}
@@ -46,11 +55,11 @@ export function CalendarView() {
                     <img
                       src={items[1].dataUrl}
                       alt=""
-                      className="stack-image-back layer-mid stamp-clip"
+                      className="stack-image-back layer-mid"
                       aria-hidden
                     />
                   ) : null}
-                  <img src={items[0].dataUrl} alt="" className="stack-image-main stamp-clip" />
+                  <img src={items[0].dataUrl} alt="" className="stack-image-main" />
                 </div>
               ) : null}
             </div>

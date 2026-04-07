@@ -101,9 +101,35 @@ a {
   font-size: 12px;
 }
 
-.stamp-clip {
-  clip-path: var(--stamp-clip);
-  -webkit-clip-path: var(--stamp-clip);
+.day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.routine-dots {
+  display: inline-flex;
+  gap: 4px;
+  opacity: 0.35;
+}
+
+.routine-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d1d5db;
+}
+
+.routine-dot.done.dot-1 {
+  background: #3b82f6;
+}
+
+.routine-dot.done.dot-2 {
+  background: #22c55e;
+}
+
+.routine-dot.done.dot-3 {
+  background: #f97316;
 }
 
 .stack-preview {
@@ -193,6 +219,26 @@ a {
   cursor: grabbing;
 }
 
+.routine-control {
+  margin-bottom: 12px;
+}
+
+.routine-btn.active {
+  color: #fff;
+}
+
+.routine-btn.active.dot-1 {
+  background: #3b82f6;
+}
+
+.routine-btn.active.dot-2 {
+  background: #22c55e;
+}
+
+.routine-btn.active.dot-3 {
+  background: #f97316;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -212,15 +258,6 @@ a {
   position: relative;
   height: 420px;
   background: #111;
-}
-
-.stamp-crop-area {
-  clip-path: var(--stamp-clip) !important;
-  -webkit-clip-path: var(--stamp-clip) !important;
-  box-shadow:
-    0 0 0 2px rgba(255, 248, 220, 0.95),
-    0 0 0 5px rgba(139, 90, 43, 0.55),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.25) !important;
 }
 
 .crop-controls {

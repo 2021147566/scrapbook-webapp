@@ -10,11 +10,13 @@ interface ScrapState {
   selectedDate: DateKey;
   imagesByDate: Record<DateKey, ScrapImage[]>;
   diaryByDate: Record<DateKey, DiaryEntry>;
+  routineByDate: Record<DateKey, boolean[]>;
   setMonthCursor: (date: Date) => void;
   setSelectedDate: (date: DateKey) => void;
   addImage: (date: DateKey, dataUrl: string) => void;
   removeImage: (date: DateKey, imageId: string) => void;
   moveImage: (date: DateKey, fromIndex: number, toIndex: number) => void;
+  toggleRoutine: (date: DateKey, routineIndex: number) => void;
   setDiary: (date: DateKey, text: string) => void;
   loadSnapshot: (snapshot: PersistedSnapshot) => void;
   toSnapshot: () => PersistedSnapshot;
@@ -27,6 +29,7 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
   selectedDate: todayKey,
   imagesByDate: {},
   diaryByDate: {},
+  routineByDate: {},
   setMonthCursor: (date) => set({ monthCursor: date }),
   setSelectedDate: (date) => set({ selectedDate: date }),
   addImage: (date, dataUrl) =>
@@ -62,6 +65,13 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
       list.splice(toIndex, 0, { ...picked, updatedAt: Date.now() });
       return { imagesByDate: { ...state.imagesByDate, [date]: list } };
     }),
+  toggleRoutine: (date, routineIndex) =>
+    set((state) => {
+      const prev = state.routineByDate[date] ?? [false, false, false];
+      const next = [...prev];
+      next[routineIndex] = !next[routineIndex];
+      return { routineByDate: { ...state.routineByDate, [date]: next } };
+    }),
   setDiary: (date, text) =>
     set((state) => ({
       diaryByDate: {
@@ -73,6 +83,7 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
     set({
       imagesByDate: snapshot.imagesByDate ?? {},
       diaryByDate: snapshot.diaryByDate ?? {},
+      routineByDate: snapshot.routineByDate ?? {},
     }),
   toSnapshot: () => {
     const state = get();
@@ -80,6 +91,7 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
       updatedAt: Date.now(),
       imagesByDate: state.imagesByDate,
       diaryByDate: state.diaryByDate,
+      routineByDate: state.routineByDate,
     };
   },
 }));
