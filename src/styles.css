@@ -73,11 +73,15 @@ a {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
+  grid-auto-rows: minmax(min-content, auto);
 }
 
 .calendar-cell {
-  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 260px;
   border: 1px solid #eee;
   border-radius: 8px;
   padding: 8px;
@@ -97,10 +101,18 @@ a {
   font-size: 12px;
 }
 
+.stamp-clip {
+  clip-path: var(--stamp-clip);
+  -webkit-clip-path: var(--stamp-clip);
+}
+
 .stack-preview {
   position: relative;
-  margin-top: 8px;
-  height: 120px;
+  margin-top: 6px;
+  flex: 1 1 auto;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  min-height: 240px;
 }
 
 .photo-stack {
@@ -109,32 +121,35 @@ a {
   height: 100%;
 }
 
-.paper-layer {
+.stack-image-back {
   position: absolute;
-  inset: 8px 10px 0 10px;
-  border: 2px solid #fff;
-  border-radius: 8px;
-  background: #f3f4f6;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  object-fit: cover;
+  opacity: 0.52;
+  filter: brightness(0.95) saturate(0.88);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
 }
 
-.paper-layer.layer-back {
-  transform: rotate(-6deg) translate(-4px, 5px);
+.stack-image-back.layer-far {
+  inset: 14px 18px 0 18px;
+  transform: rotate(-6deg) translate(-3px, 10px);
+  z-index: 1;
 }
 
-.paper-layer.layer-mid {
-  transform: rotate(5deg) translate(4px, 2px);
+.stack-image-back.layer-mid {
+  inset: 8px 12px 0 12px;
+  transform: rotate(5deg) translate(5px, 4px);
+  z-index: 2;
 }
 
 .stack-image-main {
   position: absolute;
-  inset: 6px 8px 0 8px;
-  width: calc(100% - 16px);
-  height: calc(100% - 6px);
+  inset: 0 4px 0 4px;
+  width: calc(100% - 8px);
+  height: 100%;
   object-fit: cover;
-  border: 3px solid #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  z-index: 3;
 }
 
 .selected-images {
@@ -149,9 +164,9 @@ a {
 
 .image-card img {
   width: 100%;
-  height: 130px;
+  aspect-ratio: 4 / 5;
+  height: auto;
   object-fit: cover;
-  border-radius: 8px;
 }
 
 .modal-backdrop {
@@ -173,6 +188,15 @@ a {
   position: relative;
   height: 420px;
   background: #111;
+}
+
+.stamp-crop-area {
+  clip-path: var(--stamp-clip) !important;
+  -webkit-clip-path: var(--stamp-clip) !important;
+  box-shadow:
+    0 0 0 2px rgba(255, 248, 220, 0.95),
+    0 0 0 5px rgba(139, 90, 43, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25) !important;
 }
 
 .crop-controls {
@@ -199,7 +223,6 @@ a {
   width: 100%;
   max-height: 520px;
   object-fit: contain;
-  border-radius: 8px;
   margin: 8px 0;
 }
 

@@ -25,7 +25,11 @@ export function BookView() {
                 {safeIndex + 1}/{dates.length}
               </p>
             </header>
-            {currentImage ? <img src={currentImage.dataUrl} alt="" className="book-image" /> : <p>이미지 없음</p>}
+            {currentImage ? (
+              <img src={currentImage.dataUrl} alt="" className="book-image stamp-clip" />
+            ) : (
+              <p>이미지 없음</p>
+            )}
             <div className="row">
               <button disabled={safeIndex <= 0} onClick={() => setIndex((v) => v - 1)}>
                 이전

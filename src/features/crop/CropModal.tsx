@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
+import { addStampPath } from '../../lib/stampPath';
 
 interface CropModalProps {
   src: string;
@@ -19,6 +20,8 @@ async function createCroppedImage(src: string, pixelCrop: Area): Promise<string>
   canvas.height = pixelCrop.height;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 컨텍스트를 가져올 수 없습니다.');
+  addStampPath(ctx, pixelCrop.width, pixelCrop.height);
+  ctx.clip();
   ctx.drawImage(
     image,
     pixelCrop.x,
@@ -60,6 +63,7 @@ export function CropModal({ src, onClose, onSave }: CropModalProps) {
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
+            classes={{ cropAreaClassName: 'stamp-crop-area' }}
           />
         </div>
         <div className="crop-controls">

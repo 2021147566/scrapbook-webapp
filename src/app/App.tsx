@@ -144,7 +144,7 @@ function CalendarPage() {
         <div className="selected-grid">
           {images.map((img) => (
             <article key={img.id} className="image-card">
-              <img src={img.dataUrl} alt="" />
+              <img src={img.dataUrl} alt="" className="stamp-clip" />
               <button onClick={() => removeImage(selectedDate, img.id)}>삭제</button>
             </article>
           ))}

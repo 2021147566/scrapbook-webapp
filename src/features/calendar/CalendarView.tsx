@@ -34,9 +34,23 @@ export function CalendarView() {
             <div className="stack-preview">
               {items.length > 0 ? (
                 <div className="photo-stack">
-                  {items.length > 2 ? <span className="paper-layer layer-back" aria-hidden="true" /> : null}
-                  {items.length > 1 ? <span className="paper-layer layer-mid" aria-hidden="true" /> : null}
-                  <img src={items[0].dataUrl} alt="" className="stack-image-main" />
+                  {items.length > 2 ? (
+                    <img
+                      src={items[2].dataUrl}
+                      alt=""
+                      className="stack-image-back layer-far stamp-clip"
+                      aria-hidden
+                    />
+                  ) : null}
+                  {items.length > 1 ? (
+                    <img
+                      src={items[1].dataUrl}
+                      alt=""
+                      className="stack-image-back layer-mid stamp-clip"
+                      aria-hidden
+                    />
+                  ) : null}
+                  <img src={items[0].dataUrl} alt="" className="stack-image-main stamp-clip" />
                 </div>
               ) : null}
             </div>
