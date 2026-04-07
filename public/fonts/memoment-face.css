@@ -1,0 +1,14 @@
+/* 메모먼트 꾹꾹체 — https://www.memoment.kr/font 에서 받은 파일을 이 폴더에 둡니다.
+   라이선스: 웹 임베딩 허용, 폰트 파일 재배포·무단 업로드 금지(공식 안내 참고). */
+
+@font-face {
+  font-family: 'MemomentKkukkuk';
+  src:
+    url('./MemomentKkukkuk.woff2') format('woff2'),
+    url('./MemomentKkukkuk.otf') format('opentype'),
+    url('./MemomentKkukkuk.ttf') format('truetype'),
+    url('./MemomentKkukkkuk.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

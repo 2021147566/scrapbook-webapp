@@ -1,11 +1,4 @@
-/* 메모먼트 꾹꾹체 — 눈누·projectnoonnu / jsDelivr (상업·웹 사용 허용, 라이선스: 눈누·메모먼트 안내 준수) */
-@font-face {
-  font-family: 'MemomentKkukkuk';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@main/MemomentKkukkuk.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
+/* 메모먼트 꾹꾹체: public/fonts/memoment-face.css (@font-face) + public/fonts/에 받은 파일 */
 
 :root {
   font-family: 'MemomentKkukkuk', 'Noto Sans KR', Inter, 'Segoe UI', sans-serif;
