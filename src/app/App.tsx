@@ -1,10 +1,10 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/en';
 import 'dayjs/locale/ko';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { CalendarDateGrid, CalendarWeekdayHeader } from '../features/calendar/CalendarView';
-import { CropModal } from '../features/crop/CropModal';
+import { CalendarDateGrid, CalendarWeekGrid, CalendarWeekdayHeader } from '../features/calendar/CalendarView';
+import { CalendarSidebar } from '../features/calendar/CalendarSidebar';
 import { BookView } from '../features/book/BookView';
 import { importSnapshot, loadSnapshot, saveSnapshot } from '../lib/storage/indexeddb';
 import {
@@ -19,9 +19,7 @@ import {
 } from '../lib/sync/firebaseSync';
 import { useScrapStore } from '../store/scrapStore';
 import type { PersistedSnapshot, ScrapImage } from '../types';
-import { effectiveRoutineLabels, normalizeRoutineLabels } from '../types';
-
-const EMPTY_IMAGES: ScrapImage[] = [];
+import { normalizeRoutineLabels } from '../types';
 
 function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapshot): PersistedSnapshot {
   const imagesByDate: PersistedSnapshot['imagesByDate'] = { ...local.imagesByDate };
@@ -92,15 +90,6 @@ function usePersistState() {
   }, [toSnapshot]);
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 function Header() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
@@ -122,6 +111,9 @@ function Header() {
             오늘 {dayjs().locale('ko').format('M/D ddd')}
           </span>
           <nav className="topbar-links row" aria-label="화면 전환">
+            <Link className={location.pathname === '/m' ? 'active' : ''} to="/m">
+              모바일
+            </Link>
             <Link className={location.pathname === '/calendar' ? 'active' : ''} to="/calendar">
               달력
             </Link>
@@ -139,183 +131,93 @@ function Header() {
 }
 
 function CalendarPage() {
-  const monthCursor = useScrapStore((s) => s.monthCursor);
-  const selectedDate = useScrapStore((s) => s.selectedDate);
-  const imagesByDate = useScrapStore((s) => s.imagesByDate);
-  const routineByDate = useScrapStore((s) => s.routineByDate);
-  const addImage = useScrapStore((s) => s.addImage);
-  const removeImage = useScrapStore((s) => s.removeImage);
-  const moveImage = useScrapStore((s) => s.moveImage);
-  const setImageTitle = useScrapStore((s) => s.setImageTitle);
-  const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
-  const routineLabels = useScrapStore((s) => s.routineLabels);
-  const [pending, setPending] = useState<string | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
-  const routines = routineByDate[selectedDate] ?? [false, false, false];
-  const labelDisplay = effectiveRoutineLabels(routineLabels);
-
-  const monthRoutineCounts = useMemo(() => {
-    const start = dayjs(monthCursor).startOf('month');
-    const daysInMonth = start.daysInMonth();
-    const counts = [0, 0, 0];
-    for (let d = 1; d <= daysInMonth; d++) {
-      const key = start.date(d).format('YYYY-MM-DD');
-      const r = routineByDate[key] ?? [false, false, false];
-      for (let i = 0; i < 3; i++) {
-        if (r[i]) counts[i] += 1;
-      }
-    }
-    return { counts, daysInMonth };
-  }, [monthCursor, routineByDate]);
-
-  const onFiles = async (files: FileList | null) => {
-    if (!files?.length) return;
-    const dataUrl = await readFileAsDataUrl(files[0]);
-    setPending(dataUrl);
-  };
-
-  useEffect(() => {
-    const onPaste = async (event: ClipboardEvent) => {
-      const file = Array.from(event.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'));
-      if (!file) return;
-      const dataUrl = await readFileAsDataUrl(file);
-      setPending(dataUrl);
-    };
-    window.addEventListener('paste', onPaste);
-    return () => window.removeEventListener('paste', onPaste);
-  }, []);
-
   return (
     <div className="page page--calendar">
       <div className="calendar-page-layout">
         <CalendarWeekdayHeader />
         <CalendarDateGrid />
-        <aside className="calendar-sidebar" aria-label="선택 날짜·업로드·루틴·사진">
-          <div className="calendar-sidebar-card calendar-sidebar-datecard">
-            <span className="calendar-sidebar-date-label">선택한 날</span>
-            <time className="calendar-sidebar-date-main" dateTime={selectedDate}>
-              {dayjs(selectedDate).locale('ko').format('M월 D일 ddd')}
-            </time>
-            <span className="calendar-sidebar-date-sub">
-              {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
-            </span>
-          </div>
-
-          <div className="calendar-sidebar-card calendar-sidebar-upload">
-            <div className="calendar-sidebar-upload-head">
-              <strong>사진 추가</strong>
-              <small>Ctrl+V 붙여넣기</small>
-            </div>
-            <button type="button" className="calendar-sidebar-upload-btn" onClick={() => fileInputRef.current?.click()}>
-              이미지 선택
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                onFiles(e.target.files);
-                e.currentTarget.value = '';
-              }}
-            />
-          </div>
-
-          <div className="calendar-sidebar-card calendar-sidebar-routine">
-            <span className="calendar-sidebar-section-title">이 날 루틴</span>
-            <div className="calendar-sidebar-routine-btns">
-              {labelDisplay.map((label, idx) => (
-                <button
-                  key={`${idx}-${label}`}
-                  type="button"
-                  className={
-                    routines[idx]
-                      ? `routine-btn routine-btn--sidebar active dot-${idx + 1}`
-                      : `routine-btn routine-btn--sidebar dot-${idx + 1}`
-                  }
-                  onClick={() => toggleRoutine(selectedDate, idx)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="calendar-sidebar-card calendar-sidebar-stats">
-            <span className="calendar-sidebar-section-title">
-              {dayjs(monthCursor).locale('ko').format('M월')} 루틴
-            </span>
-            <p className="calendar-sidebar-stats-hint">이번 달 완료한 날 수</p>
-            <ul className="calendar-sidebar-stats-list">
-              {labelDisplay.map((label, idx) => {
-                const n = monthRoutineCounts.counts[idx];
-                const max = monthRoutineCounts.daysInMonth;
-                const pct = max ? Math.round((n / max) * 100) : 0;
-                return (
-                  <li key={label} className="calendar-sidebar-stat-row">
-                    <span className={`calendar-sidebar-stat-name dot-${idx + 1}`}>{label}</span>
-                    <span className="calendar-sidebar-stat-count">
-                      {n}/{max}일
-                    </span>
-                    <span className="calendar-sidebar-stat-bar" aria-hidden>
-                      <span className="calendar-sidebar-stat-bar-fill" style={{ width: `${pct}%` }} />
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-
-          <div className="calendar-sidebar-card calendar-sidebar-selected">
-            <h3 className="calendar-sidebar-section-title">이 날 사진</h3>
-            <div className="selected-grid selected-grid--sidebar">
-              {images.map((img, index) => (
-                <article
-                  key={img.id}
-                  className="image-card"
-                  draggable
-                  onDragStart={() => setDragIndex(index)}
-                  onDragEnd={() => setDragIndex(null)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => {
-                    if (dragIndex === null) return;
-                    moveImage(selectedDate, dragIndex, index);
-                    setDragIndex(null);
-                  }}
-                >
-                  <img src={img.dataUrl} alt="" />
-                  <input
-                    className="image-title-input"
-                    value={img.title ?? ''}
-                    onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
-                    placeholder="사진 이름"
-                  />
-                  <div className="image-card-actions">
-                    <button type="button" onClick={() => removeImage(selectedDate, img.id)}>
-                      삭제
-                    </button>
-                    <button type="button" disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
-                      대표
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {images.length === 0 ? <p className="calendar-sidebar-empty-photos">아직 사진이 없어요.</p> : null}
-          </div>
-        </aside>
+        <CalendarSidebar />
       </div>
-      {pending ? (
-        <CropModal
-          src={pending}
-          onClose={() => setPending(null)}
-          onSave={(dataUrl) => {
-            addImage(selectedDate, dataUrl);
-            setPending(null);
-          }}
-        />
-      ) : null}
+    </div>
+  );
+}
+
+function MobileWeekTopbar() {
+  const weekCursor = useScrapStore((s) => s.weekCursor);
+  const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
+  const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
+  const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
+  const location = useLocation();
+
+  const weekStart = dayjs(weekCursor).day(0);
+  const weekEnd = weekStart.add(6, 'day');
+  const rangeLabel = `${weekStart.locale('ko').format('M/D')} – ${weekEnd.locale('ko').format('M/D')}`;
+
+  const shiftWeek = (delta: number) => {
+    const nextWeekStart = dayjs(weekCursor).add(delta, 'week').day(0);
+    setWeekCursor(nextWeekStart.toDate());
+    setMonthCursor(nextWeekStart.startOf('month').toDate());
+    setSelectedDate(nextWeekStart.format('YYYY-MM-DD'));
+  };
+
+  const goToday = () => {
+    const t = dayjs();
+    const sun = t.day(0);
+    setWeekCursor(sun.toDate());
+    setMonthCursor(t.startOf('month').toDate());
+    setSelectedDate(t.format('YYYY-MM-DD'));
+  };
+
+  return (
+    <header className="mobile-topbar">
+      <div className="mobile-week-nav">
+        <button type="button" className="mobile-week-btn" onClick={() => shiftWeek(-1)} aria-label="이전 주">
+          ◀
+        </button>
+        <div className="mobile-week-range">
+          <strong>{rangeLabel}</strong>
+          <span className="mobile-week-sub">{weekStart.locale('ko').format('YYYY년')}</span>
+        </div>
+        <button type="button" className="mobile-week-btn" onClick={() => shiftWeek(1)} aria-label="다음 주">
+          ▶
+        </button>
+        <button type="button" className="mobile-today-btn" onClick={goToday}>
+          오늘
+        </button>
+      </div>
+      <nav className="mobile-topbar-links" aria-label="화면 전환">
+        <Link className={location.pathname === '/m' ? 'active' : ''} to="/m">
+          주간
+        </Link>
+        <Link to="/calendar">달력</Link>
+        <Link to="/book">책</Link>
+        <Link to="/settings">설정</Link>
+      </nav>
+    </header>
+  );
+}
+
+function MobileCalendarPage() {
+  const setWeekCursor = useScrapStore((s) => s.setWeekCursor);
+  const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
+
+  useEffect(() => {
+    const d = useScrapStore.getState().selectedDate;
+    const w = dayjs(d).day(0).toDate();
+    setWeekCursor(w);
+    setMonthCursor(dayjs(d).startOf('month').toDate());
+  }, [setWeekCursor, setMonthCursor]);
+
+  return (
+    <div className="page page--mobile-calendar">
+      <MobileWeekTopbar />
+      <div className="mobile-week-calendar-block">
+        <CalendarWeekdayHeader />
+        <CalendarWeekGrid />
+      </div>
+      <div className="mobile-sidebar-scroll">
+        <CalendarSidebar />
+      </div>
     </div>
   );
 }
@@ -461,6 +363,7 @@ function SettingsPage() {
 
 export function App() {
   usePersistState();
+  const location = useLocation();
   useEffect(() => {
     if (!isFirebaseConfigured()) return;
     void completeGoogleRedirectIfAny();
@@ -468,10 +371,11 @@ export function App() {
 
   return (
     <div className="app">
-      <Header />
+      {location.pathname !== '/m' ? <Header /> : null}
       <Routes>
         <Route path="/" element={<Navigate to="/calendar" replace />} />
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/m" element={<MobileCalendarPage />} />
         <Route path="/book" element={<BookView />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>

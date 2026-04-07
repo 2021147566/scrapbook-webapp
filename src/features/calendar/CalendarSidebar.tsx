@@ -1,0 +1,187 @@
+import dayjs from 'dayjs';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CropModal } from '../crop/CropModal';
+import { readFileAsDataUrl } from '../../lib/readFile';
+import { useScrapStore } from '../../store/scrapStore';
+import type { ScrapImage } from '../../types';
+import { effectiveRoutineLabels } from '../../types';
+
+const EMPTY_IMAGES: ScrapImage[] = [];
+
+export function CalendarSidebar() {
+  const monthCursor = useScrapStore((s) => s.monthCursor);
+  const selectedDate = useScrapStore((s) => s.selectedDate);
+  const imagesByDate = useScrapStore((s) => s.imagesByDate);
+  const routineByDate = useScrapStore((s) => s.routineByDate);
+  const addImage = useScrapStore((s) => s.addImage);
+  const removeImage = useScrapStore((s) => s.removeImage);
+  const moveImage = useScrapStore((s) => s.moveImage);
+  const setImageTitle = useScrapStore((s) => s.setImageTitle);
+  const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
+  const routineLabels = useScrapStore((s) => s.routineLabels);
+  const [pending, setPending] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
+  const routines = routineByDate[selectedDate] ?? [false, false, false];
+  const labelDisplay = effectiveRoutineLabels(routineLabels);
+
+  const monthRoutineCounts = useMemo(() => {
+    const start = dayjs(monthCursor).startOf('month');
+    const daysInMonth = start.daysInMonth();
+    const counts = [0, 0, 0];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = start.date(d).format('YYYY-MM-DD');
+      const r = routineByDate[key] ?? [false, false, false];
+      for (let i = 0; i < 3; i++) {
+        if (r[i]) counts[i] += 1;
+      }
+    }
+    return { counts, daysInMonth };
+  }, [monthCursor, routineByDate]);
+
+  const onFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const dataUrl = await readFileAsDataUrl(files[0]);
+    setPending(dataUrl);
+  };
+
+  useEffect(() => {
+    const onPaste = async (event: ClipboardEvent) => {
+      const file = Array.from(event.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'));
+      if (!file) return;
+      const dataUrl = await readFileAsDataUrl(file);
+      setPending(dataUrl);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, []);
+
+  return (
+    <>
+      <aside className="calendar-sidebar" aria-label="선택 날짜·업로드·루틴·사진">
+        <div className="calendar-sidebar-card calendar-sidebar-datecard">
+          <span className="calendar-sidebar-date-label">선택한 날</span>
+          <time className="calendar-sidebar-date-main" dateTime={selectedDate}>
+            {dayjs(selectedDate).locale('ko').format('M월 D일 ddd')}
+          </time>
+          <span className="calendar-sidebar-date-sub">
+            {dayjs(selectedDate).locale('en').format('MMM D, YYYY')}
+          </span>
+        </div>
+
+        <div className="calendar-sidebar-card calendar-sidebar-upload">
+          <div className="calendar-sidebar-upload-head">
+            <strong>사진 추가</strong>
+            <small>Ctrl+V 붙여넣기</small>
+          </div>
+          <button type="button" className="calendar-sidebar-upload-btn" onClick={() => fileInputRef.current?.click()}>
+            이미지 선택
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              onFiles(e.target.files);
+              e.currentTarget.value = '';
+            }}
+          />
+        </div>
+
+        <div className="calendar-sidebar-card calendar-sidebar-routine">
+          <span className="calendar-sidebar-section-title">이 날 루틴</span>
+          <div className="calendar-sidebar-routine-btns">
+            {labelDisplay.map((label, idx) => (
+              <button
+                key={`${idx}-${label}`}
+                type="button"
+                className={
+                  routines[idx]
+                    ? `routine-btn routine-btn--sidebar active dot-${idx + 1}`
+                    : `routine-btn routine-btn--sidebar dot-${idx + 1}`
+                }
+                onClick={() => toggleRoutine(selectedDate, idx)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="calendar-sidebar-card calendar-sidebar-stats">
+          <span className="calendar-sidebar-section-title">
+            {dayjs(monthCursor).locale('ko').format('M월')} 루틴
+          </span>
+          <p className="calendar-sidebar-stats-hint">이번 달 완료한 날 수</p>
+          <ul className="calendar-sidebar-stats-list">
+            {labelDisplay.map((label, idx) => {
+              const n = monthRoutineCounts.counts[idx];
+              const max = monthRoutineCounts.daysInMonth;
+              const pct = max ? Math.round((n / max) * 100) : 0;
+              return (
+                <li key={label} className="calendar-sidebar-stat-row">
+                  <span className={`calendar-sidebar-stat-name dot-${idx + 1}`}>{label}</span>
+                  <span className="calendar-sidebar-stat-count">
+                    {n}/{max}일
+                  </span>
+                  <span className="calendar-sidebar-stat-bar" aria-hidden>
+                    <span className="calendar-sidebar-stat-bar-fill" style={{ width: `${pct}%` }} />
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="calendar-sidebar-card calendar-sidebar-selected">
+          <h3 className="calendar-sidebar-section-title">이 날 사진</h3>
+          <div className="selected-grid selected-grid--sidebar">
+            {images.map((img, index) => (
+              <article
+                key={img.id}
+                className="image-card"
+                draggable
+                onDragStart={() => setDragIndex(index)}
+                onDragEnd={() => setDragIndex(null)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (dragIndex === null) return;
+                  moveImage(selectedDate, dragIndex, index);
+                  setDragIndex(null);
+                }}
+              >
+                <img src={img.dataUrl} alt="" />
+                <input
+                  className="image-title-input"
+                  value={img.title ?? ''}
+                  onChange={(e) => setImageTitle(selectedDate, img.id, e.target.value)}
+                  placeholder="사진 이름"
+                />
+                <div className="image-card-actions">
+                  <button type="button" onClick={() => removeImage(selectedDate, img.id)}>
+                    삭제
+                  </button>
+                  <button type="button" disabled={index === 0} onClick={() => moveImage(selectedDate, index, 0)}>
+                    대표
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+          {images.length === 0 ? <p className="calendar-sidebar-empty-photos">아직 사진이 없어요.</p> : null}
+        </div>
+      </aside>
+      {pending ? (
+        <CropModal
+          src={pending}
+          onClose={() => setPending(null)}
+          onSave={(dataUrl) => {
+            addImage(selectedDate, dataUrl);
+            setPending(null);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}

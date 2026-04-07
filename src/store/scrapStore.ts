@@ -8,12 +8,15 @@ function dayKey(d: Date) {
 
 interface ScrapState {
   monthCursor: Date;
+  /** 모바일 주간 뷰: 이번 주를 가리키는 임의의 날(보통 해당 주 일요일) */
+  weekCursor: Date;
   selectedDate: DateKey;
   imagesByDate: Record<DateKey, ScrapImage[]>;
   diaryByDate: Record<DateKey, DiaryEntry>;
   routineByDate: Record<DateKey, boolean[]>;
   routineLabels: [string, string, string];
   setMonthCursor: (date: Date) => void;
+  setWeekCursor: (date: Date) => void;
   setSelectedDate: (date: DateKey) => void;
   addImage: (date: DateKey, dataUrl: string) => void;
   removeImage: (date: DateKey, imageId: string) => void;
@@ -32,12 +35,14 @@ const todayKey = dayKey(new Date());
 
 export const useScrapStore = create<ScrapState>((set, get) => ({
   monthCursor: new Date(),
+  weekCursor: new Date(),
   selectedDate: todayKey,
   imagesByDate: {},
   diaryByDate: {},
   routineByDate: {},
   routineLabels: [...DEFAULT_ROUTINE_LABELS],
   setMonthCursor: (date) => set({ monthCursor: date }),
+  setWeekCursor: (date) => set({ weekCursor: date }),
   setSelectedDate: (date) => set({ selectedDate: date }),
   addImage: (date, dataUrl) =>
     set((state) => {

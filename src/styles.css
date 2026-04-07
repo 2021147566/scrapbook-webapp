@@ -179,6 +179,131 @@ a {
   display: none;
 }
 
+/* 모바일 주간 뷰: 상단 주간 달력 + 하단 스크롤 사이드바 */
+.page.page--mobile-calendar {
+  margin-top: 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mobile-topbar {
+  flex-shrink: 0;
+  background: linear-gradient(165deg, #f4ead7 0%, #e6d3b0 100%);
+  border: 1px solid #ccb08a;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 0 0 8px;
+  box-shadow: 0 6px 18px rgba(73, 48, 22, 0.12);
+}
+
+.mobile-week-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.mobile-week-btn {
+  font-size: 1rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #b68f60;
+  background: linear-gradient(180deg, #fff4df 0%, #ead4b1 100%);
+  color: #4b3217;
+  cursor: pointer;
+}
+
+.mobile-week-range {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.mobile-week-range strong {
+  display: block;
+  font-size: 1rem;
+  color: #4b3217;
+}
+
+.mobile-week-sub {
+  display: block;
+  font-size: 12px;
+  color: #6b5538;
+  margin-top: 2px;
+}
+
+.mobile-today-btn {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #c4b49a;
+  background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
+  color: #4b3217;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-topbar-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mobile-topbar-links a {
+  color: #4b3217;
+  padding: 2px 0;
+}
+
+.mobile-topbar-links a.active {
+  font-weight: 700;
+  border-bottom: 2px solid #8b6914;
+}
+
+.mobile-week-calendar-block {
+  flex-shrink: 0;
+  padding: 0 8px 8px;
+}
+
+.mobile-week-calendar-block .calendar-weekdays {
+  margin-bottom: 4px;
+}
+
+.calendar-grid.calendar-grid--week .calendar-cell {
+  aspect-ratio: 0.92 / 1;
+  min-height: 0;
+}
+
+.mobile-sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobile-sidebar-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.mobile-sidebar-scroll .calendar-sidebar {
+  position: static;
+  max-height: none;
+  max-width: none;
+  padding-right: 0;
+}
+
 /* 1행: 요일만 왼쪽 | 2행: 날짜칸 + 사이드바(같은 시작 y) */
 .calendar-page-layout {
   display: grid;
