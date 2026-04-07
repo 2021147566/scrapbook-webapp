@@ -88,11 +88,11 @@ export const useScrapStore = create<ScrapState>((set, get) => ({
     set((state) => {
       const list = (state.imagesByDate[date] ?? []).map((img) => {
         if (img.id !== imageId) return img;
-        const next =
-          offset === null || (Math.abs(offset.x) < 0.5 && Math.abs(offset.y) < 0.5)
-            ? { ...img, bookOffset: undefined, updatedAt: Date.now() }
-            : { ...img, bookOffset: { x: offset.x, y: offset.y }, updatedAt: Date.now() };
-        return next;
+        if (offset === null || (Math.abs(offset.x) < 0.5 && Math.abs(offset.y) < 0.5)) {
+          const { bookOffset: _, ...rest } = img;
+          return { ...rest, updatedAt: Date.now() };
+        }
+        return { ...img, bookOffset: { x: offset.x, y: offset.y }, updatedAt: Date.now() };
       });
       return { imagesByDate: { ...state.imagesByDate, [date]: list } };
     }),

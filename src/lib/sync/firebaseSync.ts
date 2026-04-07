@@ -250,21 +250,27 @@ export async function fetchPublicScrapbookSnapshot(): Promise<PersistedSnapshot 
   return fetchScrapbookBundleForUid(uid);
 }
 
+/** Firestore는 중첩 필드에 `undefined`가 있으면 invalid nested entity 오류 — JSON 왕복으로 제거 */
+function sanitizeSnapshotForFirestore(snapshot: PersistedSnapshot): PersistedSnapshot {
+  return JSON.parse(JSON.stringify(snapshot)) as PersistedSnapshot;
+}
+
 export async function pushSnapshot(snapshot: PersistedSnapshot): Promise<void> {
   ensureFirebase();
   if (!authUser) throw new Error('로그인 후 동기화할 수 있습니다.');
   if (!isOwnerEmail(authUser)) {
     throw new Error('편집 권한이 없습니다. 소유자 계정으로 로그인하세요.');
   }
+  const clean = sanitizeSnapshotForFirestore(snapshot);
   const firestore = getFirestore();
   await setDoc(doc(firestore, 'scrapbooks', authUser.uid), {
     updatedAt: Date.now(),
-    snapshot,
+    snapshot: clean,
   });
   const storage = getStorage();
   await uploadString(
     ref(storage, `scrapbooks/${authUser.uid}/snapshot.json`),
-    JSON.stringify(snapshot),
+    JSON.stringify(clean),
     'raw',
     { contentType: 'application/json' },
   );
