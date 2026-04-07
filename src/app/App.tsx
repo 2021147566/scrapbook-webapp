@@ -154,6 +154,17 @@ function Header() {
   const location = useLocation();
   const authUser = useFirebaseAuthUser();
   const readOnly = useReadOnly();
+  const hasFirebase = isFirebaseConfigured();
+
+  const onLogoutClick = async () => {
+    if (!hasFirebase) return;
+    try {
+      await logoutFirebase();
+    } catch (e) {
+      console.warn('로그아웃 실패', e);
+    }
+  };
+
   return (
     <header className="topbar">
       <div className="topbar-row">
@@ -184,8 +195,15 @@ function Header() {
         </div>
       </div>
       <div className="topbar-guest-row" aria-label="일기 주인">
-        <span className="topbar-guest-title">{headerDiaryTitle(authUser)}</span>
-        {!authUser && isFirebaseConfigured() ? (
+        <div className="topbar-guest-left">
+          <span className="topbar-guest-title">{headerDiaryTitle(authUser)}</span>
+          {authUser && hasFirebase ? (
+            <button type="button" className="topbar-logout-link" onClick={onLogoutClick}>
+              로그아웃
+            </button>
+          ) : null}
+        </div>
+        {!authUser && hasFirebase ? (
           <Link className="topbar-guest-cta" to="/settings">
             나도 일기 쓰기
           </Link>
@@ -410,20 +428,7 @@ function SettingsPage() {
       ) : (
         <>
           <p className="settings-hint settings-hint--ok settings-account-line">{formatAccountLabel(authUser)}</p>
-          <button
-            type="button"
-            className="settings-backup-btn settings-firebase-logout settings-logout-below-account"
-            onClick={async () => {
-              try {
-                await logoutFirebase();
-                setSyncNote('로그아웃했습니다.');
-              } catch (e) {
-                setSyncNote(e instanceof Error ? e.message : '로그아웃 실패');
-              }
-            }}
-          >
-            로그아웃
-          </button>
+          <p className="settings-hint settings-hint--subtle">로그아웃은 상단 일기 주인 옆에서 할 수 있어요.</p>
           <div className="settings-firebase-actions">
             <div className="settings-firebase-row">
               <button

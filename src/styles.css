@@ -28,6 +28,9 @@ a {
   min-height: 100dvh;
   height: 100dvh;
   padding: 16px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -54,7 +57,7 @@ a {
   background: linear-gradient(165deg, #f4ead7 0%, #e6d3b0 100%);
   border: 1px solid #ccb08a;
   border-radius: 14px;
-  padding: 12px 16px;
+  padding: 14px 18px;
   box-shadow: 0 8px 24px rgba(73, 48, 22, 0.14);
 }
 
@@ -100,7 +103,11 @@ a {
   font-size: 15px;
   font-weight: 500;
   color: #4b3217;
-  padding: 4px 2px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .topbar-links a.active {
@@ -129,13 +136,24 @@ a {
   margin-top: 12px;
   background: linear-gradient(180deg, #f9f4e9 0%, #f0e4cf 100%);
   border: 1px solid #d8bf9d;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 14px;
+  padding: 22px 24px;
   box-shadow: 0 10px 26px rgba(67, 45, 24, 0.1);
 }
 
+.settings {
+  max-width: 640px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .settings h3 {
-  margin: 1.1em 0 0.4em;
+  margin: 1.35em 0 0.5em;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #3d2912;
+  letter-spacing: -0.02em;
 }
 
 .settings h3:first-child {
@@ -167,30 +185,40 @@ a {
 }
 
 .settings-hint {
-  margin: 0 0 10px;
-  font-size: 13px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.55;
   color: #6b5538;
+}
+
+.settings-hint--subtle {
+  margin: -4px 0 14px;
+  font-size: 13px;
+  color: #8a784f;
 }
 
 .settings-routine-grid {
   display: grid;
-  gap: 10px;
-  max-width: 420px;
-  margin-bottom: 8px;
+  gap: 14px;
+  max-width: 100%;
+  margin-bottom: 12px;
 }
 
 .settings-routine-field {
   display: grid;
-  gap: 4px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
   color: #5b3d1e;
 }
 
 .settings-routine-field input {
   border: 1px solid #c9b59a;
-  border-radius: 8px;
-  padding: 8px 10px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-height: 48px;
   font: inherit;
+  font-size: 16px;
   background: #fffaf0;
   color: #2f2518;
 }
@@ -200,15 +228,10 @@ a {
 }
 
 .settings-account-line {
-  margin: 0 0 10px;
-  font-size: 15px;
-  line-height: 1.45;
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.5;
   word-break: break-word;
-}
-
-.settings-logout-below-account {
-  margin: 0 0 14px;
-  align-self: flex-start;
 }
 
 .settings-backup-row {
@@ -231,18 +254,19 @@ a {
 
 .settings-backup-btn {
   flex: 1 1 160px;
-  min-height: 44px;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid #b68f60;
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 12px;
+  padding: 12px 18px;
   background: linear-gradient(180deg, #fff4df 0%, #ead4b1 100%);
   color: #4b3217;
   cursor: pointer;
   font: inherit;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   text-align: center;
 }
 
@@ -265,8 +289,8 @@ a {
 .settings-firebase-actions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 14px;
+  margin-top: 12px;
 }
 
 .settings-firebase-row {
@@ -292,17 +316,6 @@ a {
   padding: 6px 14px !important;
   font-size: 14px;
   font-weight: 600;
-  align-self: flex-start;
-}
-
-.settings-firebase-logout {
-  border-color: #c49a7a;
-  background: linear-gradient(180deg, #faf6f0 0%, #e8d4c4 100%);
-  flex: 0 1 24%;
-  max-width: 180px;
-  min-height: 36px;
-  padding: 7px 10px;
-  font-size: 14px;
   align-self: flex-start;
 }
 
@@ -341,31 +354,69 @@ a {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 6px 10px;
-  margin-top: 6px;
-  padding-top: 6px;
+  gap: 10px 14px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid rgba(107, 85, 56, 0.2);
   min-height: 0;
+}
+
+.topbar-guest-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .topbar-guest-title {
   font-weight: 700;
   color: #4b3217;
   font-size: 14px;
-  line-height: 1.25;
+  line-height: 1.35;
   word-break: break-word;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.topbar-logout-link {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b5538;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar-logout-link:hover {
+  color: #b91c1c;
+}
+
+.topbar-logout-link:focus-visible {
+  outline: 2px solid #8b6914;
+  outline-offset: 2px;
 }
 
 .topbar-guest-cta {
   font-size: 13px;
   font-weight: 600;
   color: #5b3d1e;
-  padding: 4px 12px;
+  padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid #c4b49a;
   background: linear-gradient(165deg, #fffdf7 0%, #f2eadc 100%);
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .topbar-guest-logged {
@@ -395,7 +446,7 @@ a {
 /* 달력 페이지: 그리드 + 오른쪽 사이드바 */
 .page.page--calendar {
   margin-top: 8px;
-  padding: 10px 12px 12px;
+  padding: 14px 16px 16px;
   /* 스크롤은 유지, 스크롤바만 숨김(메인·사이드 동일) */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1559,4 +1610,141 @@ button:hover {
 
 .book-layout .diary-panel h3 {
   flex-shrink: 0;
+}
+
+/* ── 모바일·좁은 화면: 달력·책·설정 공통 ── */
+@media (max-width: 960px) {
+  .mobile-week-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 1.05rem;
+  }
+
+  .mobile-today-btn {
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 14px;
+  }
+
+  .calendar-sidebar-card {
+    padding: 16px 18px;
+  }
+
+  .calendar-weekday {
+    font-size: 14px;
+    padding: 4px 0;
+  }
+
+  .day-number {
+    font-size: 13px;
+  }
+
+  .book-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .page.page--book {
+    padding: 10px 8px 14px;
+    margin-top: 8px;
+  }
+
+  .book-page {
+    padding: 16px 20px 14px 14px;
+    min-height: 0;
+  }
+
+  .book-page-header h3 {
+    font-size: 1.2rem;
+  }
+
+  .book-toolbar {
+    gap: 10px 12px;
+    padding-top: 12px;
+  }
+
+  .book-toolbar button {
+    min-height: 46px;
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+
+  .book-toolbar-meta {
+    font-size: 13px;
+  }
+
+  .diary-panel {
+    padding: 18px 16px;
+  }
+
+  .book-layout .diary-panel textarea {
+    min-height: 120px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 10px 12px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    padding: 12px 14px;
+  }
+
+  .topbar-links a {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .page,
+  .settings {
+    padding: 18px 16px;
+  }
+
+  .settings h3 {
+    font-size: 1.15rem;
+  }
+
+  .settings-login-lead {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .settings-backup-row,
+  .settings-firebase-row {
+    flex-direction: column;
+  }
+
+  .settings-backup-row .settings-backup-btn,
+  .settings-firebase-row .settings-backup-btn {
+    max-width: none;
+    width: 100%;
+  }
+
+  .settings--login-only {
+    min-height: min(48vh, 380px);
+    padding: 36px 20px;
+  }
+
+  .settings-google-login-btn {
+    width: 100%;
+    max-width: none !important;
+    min-height: 52px !important;
+  }
+
+  .topbar-guest-title {
+    font-size: 13px;
+  }
+
+  .topbar-logout-link {
+    padding: 8px 4px;
+    align-self: center;
+  }
 }
