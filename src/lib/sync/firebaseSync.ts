@@ -13,7 +13,7 @@ import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
 import { isOwnerEmail, OWNER_UID_FALLBACK } from '../../config/scrapbookOwner';
 import { countSnapshotImages, mergeSnapshots } from '../snapshotMerge';
 import { parsePersistedSnapshot } from '../storage/indexeddb';
-import { getBytes, getStorage, ref, uploadString } from 'firebase/storage';
+import { getDownloadURL, getStorage, ref, uploadString } from 'firebase/storage';
 import type { PersistedSnapshot } from '../../types';
 
 function ownerScrapbookUid(): string | undefined {
@@ -110,9 +110,13 @@ export function watchAuthState(onChange: (user: User | null) => void): () => voi
   });
 }
 
-/** 공개 일기 로드: JSON URL 또는 소유자 UID(Firestore/Storage) */
+/** 공개 일기 로드: 원격 URL / Firestore·Storage / 동일 출처 guest-snapshot.json */
 export function canLoadPublicScrapbook(): boolean {
-  return Boolean(import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim() || ownerScrapbookUid());
+  return Boolean(
+    import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim() ||
+      ownerScrapbookUid() ||
+      typeof window !== 'undefined',
+  );
 }
 
 const SCRAP_LOG = '[스크랩북]';
@@ -132,20 +136,31 @@ export function logPublicBootstrapLine(): void {
     console.warn(SCRAP_LOG, 'UID 없음 — VITE_SCRAPBOOK_OWNER_UID 또는 scrapbookOwner.OWNER_UID_FALLBACK');
     return;
   }
-  console.info(SCRAP_LOG, 'Firestore/Storage', `scrapbooks/${uid}`);
+  console.info(
+    SCRAP_LOG,
+    'Firestore/Storage',
+    `scrapbooks/${uid}`,
+    '— Storage CORS 시 public/guest-snapshot.json 동일 출처 폴백',
+  );
 }
 
 export function logPublicSkip(reason: string): void {
   console.info(SCRAP_LOG, '건너뜀:', reason);
 }
 
+/** Storage JSON — getDownloadURL + fetch(getBytes/XHR과 동일 CORS 요구). 실패 시 null */
 async function fetchOwnerSnapshotFromStorage(uid: string): Promise<PersistedSnapshot | null> {
   try {
     ensureFirebase();
     const storage = getStorage();
     const r = ref(storage, `scrapbooks/${uid}/snapshot.json`);
-    const bytes = await getBytes(r);
-    const text = new TextDecoder().decode(bytes);
+    const downloadUrl = await getDownloadURL(r);
+    const res = await fetch(downloadUrl);
+    if (!res.ok) {
+      console.warn(SCRAP_LOG, 'Storage snapshot.json HTTP', res.status);
+      return null;
+    }
+    const text = await res.text();
     return parsePersistedSnapshot(text);
   } catch (e) {
     const detail =
@@ -157,8 +172,24 @@ async function fetchOwnerSnapshotFromStorage(uid: string): Promise<PersistedSnap
     console.warn(SCRAP_LOG, 'Storage snapshot.json 읽기 실패', detail);
     console.warn(
       SCRAP_LOG,
-      'CORS: 레포 storage-cors.json → gsutil cors set … (storage.rules.example 참고)',
+      'GitHub Pages 등: 버킷 CORS(gsutil) 또는 public/guest-snapshot.json 동일 출처 배포',
     );
+    return null;
+  }
+}
+
+/** 배포 사이트와 같은 출처 JSON (CORS 없음). public/guest-snapshot.json → 빌드에 포함 */
+async function fetchSameOriginGuestSnapshotJson(): Promise<PersistedSnapshot | null> {
+  if (typeof window === 'undefined') return null;
+  try {
+    const u = new URL('guest-snapshot.json', window.location.origin + (import.meta.env.BASE_URL || '/'));
+    const res = await fetch(u.href, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const text = await res.text();
+    const parsed = parsePersistedSnapshot(text);
+    console.info(SCRAP_LOG, '동일 출처 guest-snapshot.json 로드', u.pathname);
+    return parsed;
+  } catch {
     return null;
   }
 }
@@ -223,7 +254,7 @@ async function fetchScrapbookBundleForUid(uid: string): Promise<PersistedSnapsho
   }
 }
 
-/** 비로그인 포함 모든 방문자가 보는 공개 스냅샷(소유자 UID 문서) */
+/** 비로그인 포함 모든 방문자가 보는 공개 스냅샷 */
 export async function fetchPublicScrapbookSnapshot(): Promise<PersistedSnapshot | null> {
   const url = import.meta.env.VITE_PUBLIC_GUEST_SNAPSHOT_URL?.trim();
   if (url) {
@@ -243,11 +274,18 @@ export async function fetchPublicScrapbookSnapshot(): Promise<PersistedSnapshot 
     }
   }
   const uid = ownerScrapbookUid();
-  if (!uid) {
-    console.warn(SCRAP_LOG, 'UID 없음');
-    return null;
+  if (uid) {
+    const fromFirebase = await fetchScrapbookBundleForUid(uid);
+    if (fromFirebase) return fromFirebase;
   }
-  return fetchScrapbookBundleForUid(uid);
+  const fromStatic = await fetchSameOriginGuestSnapshotJson();
+  if (fromStatic) {
+    return fromStatic;
+  }
+  if (!uid) {
+    console.warn(SCRAP_LOG, 'UID 없음이고 guest-snapshot.json도 없음');
+  }
+  return null;
 }
 
 /** Firestore는 중첩 필드에 `undefined`가 있으면 invalid nested entity 오류 — JSON 왕복으로 제거 */
