@@ -389,8 +389,13 @@ button:hover {
 }
 
 .diary-panel {
-  min-height: min(22vh, 265px);
   align-self: stretch;
+}
+
+/* 책 모드: 다이어리는 책 높이에 맞춰 늘어나지 않고, 내용 기준으로만 */
+.book-layout .diary-panel {
+  align-self: start;
+  min-height: 0;
 }
 
 .book-page > * {
@@ -529,9 +534,21 @@ button:hover {
 
 .diary-panel textarea {
   width: 100%;
-  min-height: 420px;
+  min-height: 200px;
+  max-height: min(42vh, 360px);
   resize: vertical;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 10px;
+  border: 1px solid #c9b59a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #2f2518;
+  background: #fffaf0;
+  font-family: inherit;
+}
+
+.diary-panel h3 {
+  font-size: 1.05rem;
+  color: #5b3d1e;
+  margin: 0 0 10px;
 }
