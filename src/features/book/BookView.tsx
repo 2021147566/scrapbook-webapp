@@ -12,7 +12,6 @@ export function BookView() {
   const selectedDate = useScrapStore((s) => s.selectedDate);
   const setSelectedDate = useScrapStore((s) => s.setSelectedDate);
   const loadedMonthKey = useScrapStore((s) => s.loadedMonthKey);
-  const resetBookLayoutForDate = useScrapStore((s) => s.resetBookLayoutForDate);
   const goToMonthShard = useMonthShardNav();
   const [dayBusy, setDayBusy] = useState(false);
 
@@ -40,7 +39,6 @@ export function BookView() {
           <>
             <header className="book-page-header">
               <h3>{dayjs(selectedDate).format('YYYY년 M월 D일')}</h3>
-              <p>이전·다음 날</p>
             </header>
             {currentImages.length > 0 ? (
               <div className="book-photo-stage">
@@ -52,22 +50,17 @@ export function BookView() {
             ) : (
               <p className="book-empty-day">이미지 없음</p>
             )}
-            <div className="row book-toolbar">
+            <div className="row book-toolbar book-toolbar--compact">
               <button type="button" disabled={dayBusy} onClick={() => void goDay(-1)}>
-                이전 날
+                ◀ 이전
               </button>
               <button type="button" disabled={dayBusy} onClick={() => void goDay(1)}>
-                다음 날
+                다음 ▶
               </button>
               {currentImages.length > 0 ? (
-                <>
-                  <span className="book-toolbar-meta" aria-live="polite">
-                    사진 {currentImages.length}장
-                  </span>
-                  <button type="button" disabled={readOnly} onClick={() => resetBookLayoutForDate(selectedDate)}>
-                    위치 초기화
-                  </button>
-                </>
+                <span className="book-toolbar-meta" aria-live="polite">
+                  {currentImages.length}장
+                </span>
               ) : null}
             </div>
           </>
