@@ -19,6 +19,9 @@ const DB_NAME = 'scrapbook-db';
 const STORE_NAME = 'state';
 const DB_VERSION = 2;
 
+/** 가져오기·공개 URL 파싱 전 상한(UTF-8 바이트) — 비정상적으로 큰 문자열로 인한 브라우저 멈춤 완화 */
+const MAX_SNAPSHOT_JSON_BYTES = 100 * 1024 * 1024;
+
 const LEGACY_SNAPSHOT_KEY = 'snapshot';
 const META_KEY = '__meta__';
 
@@ -250,6 +253,10 @@ export async function exportSnapshot(snapshot: PersistedSnapshot): Promise<strin
 }
 
 export function parsePersistedSnapshot(text: string): PersistedSnapshot {
+  const byteLen = new TextEncoder().encode(text).length;
+  if (byteLen > MAX_SNAPSHOT_JSON_BYTES) {
+    throw new Error(`스냅샷 JSON이 너무 큽니다(약 ${Math.round(byteLen / 1024 / 1024)}MiB). 100MiB 이하인지 확인해 주세요.`);
+  }
   const parsed = JSON.parse(text) as PersistedSnapshot;
   if (!parsed || typeof parsed !== 'object') throw new Error('Invalid snapshot');
   return {
