@@ -46,13 +46,19 @@ function usePersistState() {
   const toSnapshot = useScrapStore((s) => s.toSnapshot);
   const loadState = useScrapStore((s) => s.loadSnapshot);
   useEffect(() => {
-    loadSnapshot().then((snapshot) => {
-      if (snapshot) loadState(snapshot);
-    });
+    loadSnapshot()
+      .then((snapshot) => {
+        if (snapshot) loadState(snapshot);
+      })
+      .catch((error) => {
+        console.warn('IndexedDB load failed, fallback to memory state.', error);
+      });
   }, [loadState]);
   useEffect(() => {
     const t = setInterval(() => {
-      saveSnapshot(toSnapshot());
+      saveSnapshot(toSnapshot()).catch((error) => {
+        console.warn('IndexedDB save skipped:', error);
+      });
     }, 1500);
     return () => clearInterval(t);
   }, [toSnapshot]);
