@@ -255,8 +255,22 @@ function sanitizeSnapshotForFirestore(snapshot: PersistedSnapshot): PersistedSna
   return JSON.parse(JSON.stringify(snapshot)) as PersistedSnapshot;
 }
 
-/** Firestore 문서 전체 한도 ~1MiB — 이미지 base64가 많으면 초과하므로 큰 스냅샷은 Storage만 사용 */
-const FIRESTORE_SNAPSHOT_MAX_BYTES = 950_000;
+/**
+ * Firestore 문서 전체 한도 1MiB — JSON UTF-8 길이와 Firestore 직렬화 크기가 달라 여유 있게 잡음.
+ * 그래도 초과하면 setDoc 실패 → 메타만 재시도.
+ */
+const FIRESTORE_SNAPSHOT_MAX_BYTES = 500_000;
+
+function isFirestoreDocumentTooLarge(e: unknown): boolean {
+  if (!(e instanceof FirebaseError)) return false;
+  const m = (e.message ?? '').toLowerCase();
+  return (
+    m.includes('exceeds') ||
+    m.includes('maximum allowed size') ||
+    m.includes('1048576') ||
+    (e.code === 'invalid-argument' && (m.includes('size') || m.includes('document')))
+  );
+}
 
 export async function pushSnapshot(snapshot: PersistedSnapshot): Promise<void> {
   ensureFirebase();
@@ -278,19 +292,36 @@ export async function pushSnapshot(snapshot: PersistedSnapshot): Promise<void> {
 
   const firestore = getFirestore();
   const docRef = doc(firestore, 'scrapbooks', authUser.uid);
-  if (sizeBytes <= FIRESTORE_SNAPSHOT_MAX_BYTES) {
+
+  const writeMetaOnly = () =>
+    setDoc(docRef, {
+      updatedAt: Date.now(),
+    });
+
+  if (sizeBytes > FIRESTORE_SNAPSHOT_MAX_BYTES) {
+    console.info(
+      SCRAP_LOG,
+      `스냅샷 ${sizeBytes} bytes — Firestore에 본문 생략, Storage만(이미 업로드됨)`,
+    );
+    await writeMetaOnly();
+    return;
+  }
+
+  try {
     await setDoc(docRef, {
       updatedAt: Date.now(),
       snapshot: clean,
     });
-  } else {
-    console.info(
-      SCRAP_LOG,
-      `스냅샷 ${sizeBytes} bytes — Firestore 한도 초과, Storage만 저장(내려받기·공개 로드는 동일)`,
-    );
-    await setDoc(docRef, {
-      updatedAt: Date.now(),
-    });
+  } catch (e) {
+    if (isFirestoreDocumentTooLarge(e)) {
+      console.warn(
+        SCRAP_LOG,
+        'Firestore 문서 한도 초과로 스냅샷 필드 생략 — Storage는 이미 반영됨',
+      );
+      await writeMetaOnly();
+      return;
+    }
+    throw e;
   }
 }
 

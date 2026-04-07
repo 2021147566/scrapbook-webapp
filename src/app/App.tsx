@@ -32,6 +32,8 @@ import { DEFAULT_ROUTINE_LABELS } from '../types';
 /** 달력 그리드·사이드바와 동일 기준 (styles.css) */
 const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
 
+const AUTO_SYNC_STORAGE_KEY = 'scrapbook-auto-sync';
+
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
@@ -547,7 +549,19 @@ function SettingsPage() {
               </button>
             </div>
             <label className="settings-auto-sync">
-              <input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={autoSync}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setAutoSync(on);
+                  try {
+                    localStorage.setItem(AUTO_SYNC_STORAGE_KEY, on ? '1' : '0');
+                  } catch {
+                    // ignore
+                  }
+                }}
+              />
               자동 동기화(10초마다 업로드)
             </label>
           </div>
