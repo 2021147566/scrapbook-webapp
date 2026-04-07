@@ -32,6 +32,8 @@ jobs:
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_MEMOMENT_FONT_OTF_URL: ${{ secrets.VITE_MEMOMENT_FONT_OTF_URL }}
+          VITE_MEMOMENT_FONT_TTF_URL: ${{ secrets.VITE_MEMOMENT_FONT_TTF_URL }}
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
