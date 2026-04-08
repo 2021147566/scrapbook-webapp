@@ -589,124 +589,131 @@ function SettingsPage() {
   }
 
   return (
-    <section className="settings">
-      <h3>루틴 이름 (3개 고정)</h3>
-      <p className="settings-hint">달력에서 점·버튼에 쓰이는 이름입니다. 비우면 기본값으로 돌아갑니다.</p>
-      <div className="settings-routine-grid">
-        {routineLabels.map((label, idx) => (
-          <label key={idx} className="settings-routine-field">
-            <span>루틴 {idx + 1}</span>
+    <>
+      <section className="settings">
+        <h3>루틴 이름 (3개 고정)</h3>
+        <p className="settings-hint">달력에서 점·버튼에 쓰이는 이름입니다. 비우면 기본값으로 돌아갑니다.</p>
+        <div className="settings-routine-grid">
+          {routineLabels.map((label, idx) => (
+            <label key={idx} className="settings-routine-field">
+              <span>루틴 {idx + 1}</span>
+              <input
+                type="text"
+                value={label}
+                maxLength={20}
+                onChange={(e) => {
+                  const next: [string, string, string] = [...routineLabels] as [string, string, string];
+                  next[idx] = e.target.value;
+                  setRoutineLabels(next);
+                }}
+              />
+            </label>
+          ))}
+        </div>
+        <h3>데이터</h3>
+        <p className="settings-hint">JSON 파일로 전체 데이터를 내보내거나, 같은 형식으로 가져올 수 있습니다.</p>
+        <div className="settings-backup-row">
+          <button type="button" className="settings-backup-btn" onClick={downloadBackup}>
+            백업 내보내기
+          </button>
+          <label className="settings-backup-btn file-upload settings-backup-import">
+            백업 가져오기
             <input
-              type="text"
-              value={label}
-              maxLength={20}
-              onChange={(e) => {
-                const next: [string, string, string] = [...routineLabels] as [string, string, string];
-                next[idx] = e.target.value;
-                setRoutineLabels(next);
+              type="file"
+              accept=".json,application/json"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const text = await file.text();
+                  const imported = await importSnapshot(text);
+                  loadState(imported);
+                  const meta = await loadMeta();
+                  const st = useScrapStore.getState();
+                  st.setLoadedMonthKey(meta.lastActiveMonthKey);
+                  st.setMonthCursor(dayjs(`${meta.lastActiveMonthKey}-01`).toDate());
+                  setSyncNote('백업을 불러와 반영했습니다.');
+                } catch (err) {
+                  setSyncNote(err instanceof Error ? err.message : '가져오기 실패');
+                } finally {
+                  e.currentTarget.value = '';
+                }
               }}
             />
           </label>
-        ))}
-      </div>
-      <h3>데이터</h3>
-      <p className="settings-hint">JSON 파일로 전체 데이터를 내보내거나, 같은 형식으로 가져올 수 있습니다.</p>
-      <div className="settings-backup-row">
-        <button type="button" className="settings-backup-btn" onClick={downloadBackup}>
-          백업 내보내기
-        </button>
-        <label className="settings-backup-btn file-upload settings-backup-import">
-          백업 가져오기
-          <input
-            type="file"
-            accept=".json,application/json"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                const text = await file.text();
-                const imported = await importSnapshot(text);
-                loadState(imported);
-                const meta = await loadMeta();
-                const st = useScrapStore.getState();
-                st.setLoadedMonthKey(meta.lastActiveMonthKey);
-                st.setMonthCursor(dayjs(`${meta.lastActiveMonthKey}-01`).toDate());
-                setSyncNote('백업을 불러와 반영했습니다.');
-              } catch (err) {
-                setSyncNote(err instanceof Error ? err.message : '가져오기 실패');
-              } finally {
-                e.currentTarget.value = '';
-              }
-            }}
-          />
-        </label>
-      </div>
-      <h3>동기화(Firebase)</h3>
-      {!hasFirebase ? (
-        <p className="settings-hint">환경변수가 없어서 클라우드 동기화를 쓸 수 없습니다.</p>
-      ) : (
-        <>
-          <p className="settings-hint settings-hint--ok settings-account-line">{formatAccountLabel(authUser)}</p>
-          <div className="settings-firebase-actions">
-            <div className="settings-firebase-row">
-              <button
-                type="button"
-                className="settings-backup-btn"
-                disabled={uploadBusy}
-                onClick={async () => {
-                  if (uploadBusy) return;
-                  setUploadBusy(true);
-                  try {
-                    const full = await mergeAllMonthShardsFromIDB();
-                    await pushSnapshot(full);
-                    setSyncNote('클라우드로 업로드 완료');
-                  } catch (e) {
-                    setSyncNote(e instanceof Error ? e.message : '업로드 실패');
-                  } finally {
-                    setUploadBusy(false);
-                  }
-                }}
-              >
-                {uploadBusy ? '업로드 중…' : '업로드'}
-              </button>
-              <button
-                type="button"
-                className="settings-backup-btn"
-                onClick={async () => {
-                  try {
-                    const ok = await pullCloudMergeIntoStore();
-                    setSyncNote(
-                      ok ? '클라우드 병합 완료(최신 수정 우선)' : '클라우드에 저장된 데이터가 없습니다.',
-                    );
-                  } catch (e) {
-                    setSyncNote(e instanceof Error ? e.message : '내려받기 실패');
-                  }
-                }}
-              >
-                내려받기
-              </button>
+        </div>
+        <h3>동기화(Firebase)</h3>
+        {!hasFirebase ? (
+          <p className="settings-hint">환경변수가 없어서 클라우드 동기화를 쓸 수 없습니다.</p>
+        ) : (
+          <>
+            <p className="settings-hint settings-hint--ok settings-account-line">{formatAccountLabel(authUser)}</p>
+            <div className="settings-firebase-actions">
+              <div className="settings-firebase-row">
+                <button
+                  type="button"
+                  className="settings-backup-btn"
+                  disabled={uploadBusy}
+                  onClick={async () => {
+                    if (uploadBusy) return;
+                    setUploadBusy(true);
+                    try {
+                      const full = await mergeAllMonthShardsFromIDB();
+                      await pushSnapshot(full);
+                      setSyncNote('클라우드로 업로드 완료');
+                    } catch (e) {
+                      setSyncNote(e instanceof Error ? e.message : '업로드 실패');
+                    } finally {
+                      setUploadBusy(false);
+                    }
+                  }}
+                >
+                  {uploadBusy ? '업로드 중…' : '업로드'}
+                </button>
+                <button
+                  type="button"
+                  className="settings-backup-btn"
+                  onClick={async () => {
+                    try {
+                      const ok = await pullCloudMergeIntoStore();
+                      setSyncNote(
+                        ok ? '클라우드 병합 완료(최신 수정 우선)' : '클라우드에 저장된 데이터가 없습니다.',
+                      );
+                    } catch (e) {
+                      setSyncNote(e instanceof Error ? e.message : '내려받기 실패');
+                    }
+                  }}
+                >
+                  내려받기
+                </button>
+              </div>
+              <label className="settings-auto-sync">
+                <input
+                  type="checkbox"
+                  checked={autoSync}
+                  onChange={(e) => {
+                    const on = e.target.checked;
+                    setAutoSync(on);
+                    try {
+                      localStorage.setItem(AUTO_SYNC_STORAGE_KEY, on ? '1' : '0');
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                />
+                자동 동기화(10초마다 업로드)
+              </label>
             </div>
-            <label className="settings-auto-sync">
-              <input
-                type="checkbox"
-                checked={autoSync}
-                onChange={(e) => {
-                  const on = e.target.checked;
-                  setAutoSync(on);
-                  try {
-                    localStorage.setItem(AUTO_SYNC_STORAGE_KEY, on ? '1' : '0');
-                  } catch {
-                    // ignore
-                  }
-                }}
-              />
-              자동 동기화(10초마다 업로드)
-            </label>
-          </div>
-        </>
-      )}
-      {syncNote ? <p className="settings-sync-note">{syncNote}</p> : null}
-    </section>
+          </>
+        )}
+        {syncNote ? <p className="settings-sync-note">{syncNote}</p> : null}
+      </section>
+      {uploadBusy ? (
+        <div className="upload-loading-backdrop" role="status" aria-live="polite" aria-label="업로드 중">
+          <div className="upload-loading-box">업로드 중…</div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
