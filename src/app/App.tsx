@@ -49,7 +49,7 @@ const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
 
 const AUTO_SYNC_STORAGE_KEY = 'scrapbook-auto-sync';
 const AUTO_SYNC_INTERVAL_MS = 10000;
-const AUTO_SYNC_IDLE_MS = 25000;
+const AUTO_SYNC_IDLE_MS = 10000;
 
 function readAutoSyncEnabled(): boolean {
   try {
