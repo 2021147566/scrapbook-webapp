@@ -444,6 +444,9 @@ function SettingsPage() {
             <p className="settings-login-lead">
               소유자({OWNER_EMAIL})만 편집할 수 있어용 일기쓰고 싶으면 문의주세요~
             </p>
+            <p className="settings-hint">
+              모바일에서 로그인 실패 시 인앱브라우저(카카오/인스타/네이버) 대신 크롬/사파리에서 열어주세요.
+            </p>
             <button
               type="button"
               className="settings-backup-btn settings-google-login-btn settings-login-main-btn"

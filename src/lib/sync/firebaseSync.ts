@@ -63,6 +63,12 @@ function preferGoogleRedirect(): boolean {
   return false;
 }
 
+function isLikelyInAppBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = (navigator.userAgent || '').toLowerCase();
+  return /(kakaotalk|naver|line|instagram|fbav|fban|wv)/.test(ua);
+}
+
 const NON_OWNER_LOGIN_MESSAGE = '허용된 계정만 로그인할 수 있습니다.';
 
 function shouldFallbackToRedirect(err: unknown): boolean {
@@ -83,6 +89,22 @@ async function normalizeOwnerAfterLogin(auth: ReturnType<typeof getAuth>, user: 
   }
   authUser = user;
   return user;
+}
+
+function toLoginFriendlyError(err: unknown): Error {
+  if (!(err instanceof FirebaseError)) {
+    return err instanceof Error ? err : new Error('로그인 실패');
+  }
+  if (err.code === 'auth/unauthorized-domain') {
+    return new Error('Firebase 콘솔 > Authentication > Authorized domains에 현재 도메인을 추가해 주세요.');
+  }
+  if (err.code === 'auth/network-request-failed') {
+    return new Error('네트워크 문제로 로그인에 실패했어요. 모바일 데이터/와이파이 상태를 확인해 주세요.');
+  }
+  if (err.code === 'auth/operation-not-supported-in-this-environment') {
+    return new Error('현재 모바일 인앱브라우저에서는 로그인이 제한될 수 있어요. 크롬/사파리로 열어 시도해 주세요.');
+  }
+  return new Error(err.message || '로그인 실패');
 }
 
 export async function completeGoogleRedirectIfAny(): Promise<User | null> {
@@ -114,20 +136,33 @@ export async function loginWithGoogle(): Promise<User | undefined> {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
   if (preferGoogleRedirect()) {
-    // 모바일은 redirect가 안정적인 편이지만 환경에 따라 popup이 더 잘 되는 경우가 있어 먼저 시도.
+    // 모바일은 기본을 redirect로 두고, 실패 시 popup으로 폴백.
+    if (isLikelyInAppBrowser()) {
+      // 인앱브라우저는 웹뷰 제약으로 실패가 잦다.
+      console.warn('[auth] 인앱브라우저 감지: redirect 시도');
+    }
     try {
-      const result = await signInWithPopup(auth, provider);
-      return await normalizeOwnerAfterLogin(auth, result.user);
+      await signInWithRedirect(auth, provider);
+      return undefined;
     } catch (e) {
-      if (!shouldFallbackToRedirect(e)) {
-        throw e;
+      try {
+        const result = await signInWithPopup(auth, provider);
+        return await normalizeOwnerAfterLogin(auth, result.user);
+      } catch (popupErr) {
+        throw toLoginFriendlyError(popupErr);
       }
+    }
+  }
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return await normalizeOwnerAfterLogin(auth, result.user);
+  } catch (e) {
+    if (shouldFallbackToRedirect(e)) {
       await signInWithRedirect(auth, provider);
       return undefined;
     }
+    throw toLoginFriendlyError(e);
   }
-  const result = await signInWithPopup(auth, provider);
-  return await normalizeOwnerAfterLogin(auth, result.user);
 }
 
 export async function logoutFirebase(): Promise<void> {
