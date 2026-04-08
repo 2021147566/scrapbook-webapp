@@ -48,6 +48,8 @@ import { DEFAULT_ROUTINE_LABELS } from '../types';
 const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
 
 const AUTO_SYNC_STORAGE_KEY = 'scrapbook-auto-sync';
+const AUTO_SYNC_INTERVAL_MS = 10000;
+const AUTO_SYNC_IDLE_MS = 25000;
 
 function readAutoSyncEnabled(): boolean {
   try {
@@ -301,12 +303,16 @@ function useAutoSyncBackground(authUser: User | null): boolean {
   const lastSyncedSigRef = useRef(
     buildRevisionSignature(useScrapStore.getState().dateRevision, useScrapStore.getState().routineLabelsRevision),
   );
+  const pendingSigRef = useRef(lastSyncedSigRef.current);
+  const pendingSinceRef = useRef<number>(Date.now());
 
   useEffect(() => {
     lastSyncedSigRef.current = buildRevisionSignature(
       useScrapStore.getState().dateRevision,
       useScrapStore.getState().routineLabelsRevision,
     );
+    pendingSigRef.current = lastSyncedSigRef.current;
+    pendingSinceRef.current = Date.now();
   }, [authUser?.uid]);
 
   useEffect(() => {
@@ -333,7 +339,13 @@ function useAutoSyncBackground(authUser: User | null): boolean {
       if (!readAutoSyncEnabled()) return;
       const s = useScrapStore.getState();
       const sig = buildRevisionSignature(s.dateRevision, s.routineLabelsRevision);
+      if (sig !== pendingSigRef.current) {
+        pendingSigRef.current = sig;
+        pendingSinceRef.current = Date.now();
+      }
       if (sig === lastSyncedSigRef.current) return;
+      // 연속 수정 중에는 업로드를 미루고, 수정이 잠잠해진 뒤에만 동기화.
+      if (Date.now() - pendingSinceRef.current < AUTO_SYNC_IDLE_MS) return;
       inFlight = true;
       if (!cancelled) {
         clearTimers();
@@ -368,7 +380,7 @@ function useAutoSyncBackground(authUser: User | null): boolean {
     };
     const timer = setInterval(() => {
       void tick();
-    }, 10000);
+    }, AUTO_SYNC_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearTimers();
