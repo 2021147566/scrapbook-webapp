@@ -1456,8 +1456,9 @@ button:hover {
 }
 
 .book-collage-wrap {
-  /* 기존 대비 약 80% */
-  --book-polaroid-size: min(calc(396px * 0.8), calc(68.4vmin * 0.8), calc(82.65vw * 0.8));
+  /* 데스크톱: 창이 좁아질수록 프레임/겹침 간격도 같이 줄여 배치 붕괴 방지 */
+  --book-layout-scale: clamp(0.62, calc(0.62 + ((100vw - 980px) / 1800)), 1);
+  --book-polaroid-size: clamp(170px, calc(317px * var(--book-layout-scale)), 317px);
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -1663,11 +1664,11 @@ button:hover {
 }
 
 .book-collage-wrap .book-film-stage--vertical .film-frame:not(:first-child) {
-  margin-top: calc(-177px * 0.8);
+  margin-top: calc(-141.6px * var(--book-layout-scale));
 }
 
 .book-collage-wrap .book-film-stage--vertical.book-film-stage--stagger-lr .film-frame:not(:first-child) {
-  margin-top: calc(-189px * 0.8);
+  margin-top: calc(-151.2px * var(--book-layout-scale));
 }
 
 .book-collage-wrap .book-film-stage .film-frame-mat {
@@ -1853,6 +1854,7 @@ button:hover {
 
   .book-collage-wrap {
     overflow: visible;
+    --book-layout-scale: 1;
     --book-polaroid-size: min(72vw, 236px);
   }
 
