@@ -9,12 +9,25 @@ export function mergeSnapshots(local: PersistedSnapshot, cloud: PersistedSnapsho
   const imagesByDate: PersistedSnapshot['imagesByDate'] = { ...local.imagesByDate };
   for (const [date, images] of Object.entries(cloud.imagesByDate ?? {})) {
     const merged = new Map<string, ScrapImage>();
-    for (const image of imagesByDate[date] ?? []) merged.set(image.id, image);
+    const order: string[] = [];
+    const seen = new Set<string>();
+    for (const image of imagesByDate[date] ?? []) {
+      merged.set(image.id, image);
+      if (!seen.has(image.id)) {
+        seen.add(image.id);
+        order.push(image.id);
+      }
+    }
     for (const image of images) {
       const prev = merged.get(image.id);
       if (!prev || prev.updatedAt < image.updatedAt) merged.set(image.id, image);
+      if (!seen.has(image.id)) {
+        seen.add(image.id);
+        order.push(image.id);
+      }
     }
-    imagesByDate[date] = Array.from(merged.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+    // 중요: 책 모드 슬롯 배치는 배열 순서를 사용하므로, 병합 시 시간 기준 재정렬하지 않는다.
+    imagesByDate[date] = order.map((id) => merged.get(id)).filter((img): img is ScrapImage => Boolean(img));
   }
 
   const diaryByDate = { ...local.diaryByDate };
