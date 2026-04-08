@@ -49,6 +49,24 @@ const MOBILE_CALENDAR_MEDIA = '(max-width: 960px)';
 
 const AUTO_SYNC_STORAGE_KEY = 'scrapbook-auto-sync';
 
+function readAutoSyncEnabled(): boolean {
+  try {
+    return localStorage.getItem(AUTO_SYNC_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function buildRevisionSignature(dateRevision: Record<string, number>, routineLabelsRevision: number): string {
+  let revSum = 0;
+  let revCount = 0;
+  for (const v of Object.values(dateRevision)) {
+    revSum += v;
+    revCount += 1;
+  }
+  return `${revCount}:${revSum}:${routineLabelsRevision}`;
+}
+
 /** 로그인 시: 표시이름(없으면 @앞) (전체 이메일) — 설정 등 */
 function formatAccountLabel(user: User): string {
   const email = user.email ?? '';
@@ -273,6 +291,56 @@ function usePublicReloadOnLogout() {
   }, []);
 }
 
+/** 전역 자동 동기화: 라우트와 무관하게 동작, 변경이 있을 때만 업로드 */
+function useAutoSyncBackground(authUser: User | null): boolean {
+  const [busy, setBusy] = useState(false);
+  const lastSyncedSigRef = useRef(
+    buildRevisionSignature(useScrapStore.getState().dateRevision, useScrapStore.getState().routineLabelsRevision),
+  );
+
+  useEffect(() => {
+    lastSyncedSigRef.current = buildRevisionSignature(
+      useScrapStore.getState().dateRevision,
+      useScrapStore.getState().routineLabelsRevision,
+    );
+  }, [authUser?.uid]);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured()) return;
+    if (!authUser || !isOwnerEmail(authUser)) return;
+    let cancelled = false;
+    let inFlight = false;
+    const tick = async () => {
+      if (inFlight) return;
+      if (!readAutoSyncEnabled()) return;
+      const s = useScrapStore.getState();
+      const sig = buildRevisionSignature(s.dateRevision, s.routineLabelsRevision);
+      if (sig === lastSyncedSigRef.current) return;
+      inFlight = true;
+      if (!cancelled) setBusy(true);
+      try {
+        const full = await mergeAllMonthShardsFromIDB();
+        await pushSnapshot(full);
+        lastSyncedSigRef.current = sig;
+      } catch (e) {
+        console.warn('[클라우드] 자동 동기화 업로드 실패', e);
+      } finally {
+        inFlight = false;
+        if (!cancelled) setBusy(false);
+      }
+    };
+    const timer = setInterval(() => {
+      void tick();
+    }, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [authUser]);
+
+  return busy;
+}
+
 function Header() {
   const monthCursor = useScrapStore((s) => s.monthCursor);
   const setMonthCursor = useScrapStore((s) => s.setMonthCursor);
@@ -397,24 +465,6 @@ function SettingsPage() {
   });
   const [uploadBusy, setUploadBusy] = useState(false);
   const { user: authUser } = useAuthState();
-
-  useEffect(() => {
-    if (!hasFirebase || !autoSync || !authUser || !isOwnerEmail(authUser)) return;
-    let inFlight = false;
-    const timer = setInterval(async () => {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-        const full = await mergeAllMonthShardsFromIDB();
-        await pushSnapshot(full);
-      } catch {
-        // 네트워크 단절 시 다음 주기에 재시도.
-      } finally {
-        inFlight = false;
-      }
-    }, 10000);
-    return () => clearInterval(timer);
-  }, [autoSync, hasFirebase, authUser]);
 
   const downloadBackup = () => {
     void (async () => {
@@ -615,6 +665,7 @@ function AppShell() {
   const readOnly = Boolean(
     isFirebaseConfigured() && (!authUser || !isOwnerEmail(authUser)),
   );
+  const autoSyncBusy = useAutoSyncBackground(authUser);
 
   return (
     <ReadOnlyProvider value={readOnly}>
@@ -626,6 +677,11 @@ function AppShell() {
         <Route path="/book" element={<BookView />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
+      {autoSyncBusy ? (
+        <div className="upload-loading-backdrop" role="status" aria-live="polite" aria-label="자동 동기화 중">
+          <div className="upload-loading-box">자동 동기화 저장 중…</div>
+        </div>
+      ) : null}
     </ReadOnlyProvider>
   );
 }

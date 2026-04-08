@@ -236,7 +236,7 @@ export function CalendarSidebar() {
       ) : null}
       {uploading ? (
         <div className="upload-loading-backdrop" role="status" aria-live="polite" aria-label="업로드 중">
-          <div className="upload-loading-box">모바일 업로드 최적화 중…</div>
+          <div className="upload-loading-box">업로드 중…</div>
         </div>
       ) : null}
     </>
