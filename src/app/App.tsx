@@ -30,7 +30,6 @@ import {
   canLoadPublicScrapbook,
   completeGoogleRedirectIfAny,
   fetchPublicScrapbookSnapshot,
-  getCurrentUser,
   isFirebaseConfigured,
   logPublicBootstrapLine,
   logPublicSkip,
@@ -389,22 +388,33 @@ function SettingsPage() {
   const setRoutineLabels = useScrapStore((s) => s.setRoutineLabels);
   const [syncNote, setSyncNote] = useState('');
   const hasFirebase = useMemo(() => isFirebaseConfigured(), []);
-  const [autoSync, setAutoSync] = useState(false);
+  const [autoSync, setAutoSync] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(AUTO_SYNC_STORAGE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [uploadBusy, setUploadBusy] = useState(false);
   const { user: authUser } = useAuthState();
 
   useEffect(() => {
-    const u = getCurrentUser();
-    if (!hasFirebase || !autoSync || !u || !isOwnerEmail(u)) return;
+    if (!hasFirebase || !autoSync || !authUser || !isOwnerEmail(authUser)) return;
+    let inFlight = false;
     const timer = setInterval(async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const full = await mergeAllMonthShardsFromIDB();
         await pushSnapshot(full);
       } catch {
         // 네트워크 단절 시 다음 주기에 재시도.
+      } finally {
+        inFlight = false;
       }
     }, 10000);
     return () => clearInterval(timer);
-  }, [autoSync, hasFirebase]);
+  }, [autoSync, hasFirebase, authUser]);
 
   const downloadBackup = () => {
     void (async () => {
@@ -539,17 +549,22 @@ function SettingsPage() {
               <button
                 type="button"
                 className="settings-backup-btn"
+                disabled={uploadBusy}
                 onClick={async () => {
+                  if (uploadBusy) return;
+                  setUploadBusy(true);
                   try {
                     const full = await mergeAllMonthShardsFromIDB();
                     await pushSnapshot(full);
                     setSyncNote('클라우드로 업로드 완료');
                   } catch (e) {
                     setSyncNote(e instanceof Error ? e.message : '업로드 실패');
+                  } finally {
+                    setUploadBusy(false);
                   }
                 }}
               >
-                업로드
+                {uploadBusy ? '업로드 중…' : '업로드'}
               </button>
               <button
                 type="button"

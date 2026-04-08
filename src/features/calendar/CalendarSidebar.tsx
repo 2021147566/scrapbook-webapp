@@ -4,6 +4,7 @@ import { CropModal } from '../crop/CropModal';
 import { useReadOnly } from '../../context/ReadOnlyContext';
 import { useFirebaseAuthUser } from '../../hooks/useFirebaseAuthUser';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { compressDataUrlForScrap } from '../../lib/imageCompress';
 import { isFirebaseConfigured } from '../../lib/sync/firebaseSync';
 import { readFileAsDataUrl } from '../../lib/readFile';
 import { useScrapStore } from '../../store/scrapStore';
@@ -31,6 +32,7 @@ export function CalendarSidebar() {
   const toggleRoutine = useScrapStore((s) => s.toggleRoutine);
   const routineLabels = useScrapStore((s) => s.routineLabels);
   const [pending, setPending] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const images = imagesByDate[selectedDate] ?? EMPTY_IMAGES;
@@ -215,12 +217,27 @@ export function CalendarSidebar() {
       {!readOnly && showPhotoAdd && pending ? (
         <CropModal
           src={pending}
-          onClose={() => setPending(null)}
-          onSave={(dataUrl) => {
-            addImage(selectedDate, dataUrl);
-            setPending(null);
+          onClose={() => {
+            if (!uploading) setPending(null);
+          }}
+          onSave={async (dataUrl) => {
+            setUploading(true);
+            try {
+              const optimized = isMobileCalendar
+                ? await compressDataUrlForScrap(dataUrl, { maxLongEdge: 720, quality: 0.8 })
+                : dataUrl;
+              addImage(selectedDate, optimized);
+              setPending(null);
+            } finally {
+              setUploading(false);
+            }
           }}
         />
+      ) : null}
+      {uploading ? (
+        <div className="upload-loading-backdrop" role="status" aria-live="polite" aria-label="업로드 중">
+          <div className="upload-loading-box">모바일 업로드 최적화 중…</div>
+        </div>
       ) : null}
     </>
   );

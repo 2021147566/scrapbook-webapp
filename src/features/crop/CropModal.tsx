@@ -4,7 +4,7 @@ import Cropper, { type Area } from 'react-easy-crop';
 interface CropModalProps {
   src: string;
   onClose: () => void;
-  onSave: (croppedDataUrl: string) => void;
+  onSave: (croppedDataUrl: string) => void | Promise<void>;
 }
 
 async function createCroppedImage(src: string, pixelCrop: Area): Promise<string> {
@@ -41,15 +41,21 @@ export function CropModal({ src, onClose, onSave }: CropModalProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
     setCroppedAreaPixels(areaPixels);
   }, []);
 
   const handleSave = async () => {
-    if (!croppedAreaPixels) return;
-    const dataUrl = await createCroppedImage(src, croppedAreaPixels);
-    onSave(dataUrl);
+    if (!croppedAreaPixels || saving) return;
+    setSaving(true);
+    try {
+      const dataUrl = await createCroppedImage(src, croppedAreaPixels);
+      await onSave(dataUrl);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -79,8 +85,12 @@ export function CropModal({ src, onClose, onSave }: CropModalProps) {
             />
           </label>
           <div className="row">
-            <button onClick={onClose}>취소</button>
-            <button onClick={handleSave}>저장</button>
+            <button onClick={onClose} disabled={saving}>
+              취소
+            </button>
+            <button onClick={handleSave} disabled={saving}>
+              {saving ? '저장 중…' : '저장'}
+            </button>
           </div>
         </div>
       </div>

@@ -1325,6 +1325,26 @@ button:hover {
   z-index: 10000;
 }
 
+.upload-loading-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10010;
+  background: rgba(16, 12, 8, 0.45);
+  display: grid;
+  place-items: center;
+}
+
+.upload-loading-box {
+  background: #fff9ee;
+  color: #4b3217;
+  border: 1px solid #c9b08d;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
 .crop-area {
   position: relative;
   height: 420px;
