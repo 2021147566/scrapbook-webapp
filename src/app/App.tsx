@@ -294,6 +294,10 @@ function usePublicReloadOnLogout() {
 /** 전역 자동 동기화: 라우트와 무관하게 동작, 변경이 있을 때만 업로드 */
 function useAutoSyncBackground(authUser: User | null): boolean {
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const busyShownAtRef = useRef(0);
+  const showDelayTimerRef = useRef<number | null>(null);
+  const hideTimerRef = useRef<number | null>(null);
   const lastSyncedSigRef = useRef(
     buildRevisionSignature(useScrapStore.getState().dateRevision, useScrapStore.getState().routineLabelsRevision),
   );
@@ -306,10 +310,24 @@ function useAutoSyncBackground(authUser: User | null): boolean {
   }, [authUser?.uid]);
 
   useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
     if (!isFirebaseConfigured()) return;
     if (!authUser || !isOwnerEmail(authUser)) return;
     let cancelled = false;
     let inFlight = false;
+    const clearTimers = () => {
+      if (showDelayTimerRef.current !== null) {
+        window.clearTimeout(showDelayTimerRef.current);
+        showDelayTimerRef.current = null;
+      }
+      if (hideTimerRef.current !== null) {
+        window.clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
     const tick = async () => {
       if (inFlight) return;
       if (!readAutoSyncEnabled()) return;
@@ -317,7 +335,14 @@ function useAutoSyncBackground(authUser: User | null): boolean {
       const sig = buildRevisionSignature(s.dateRevision, s.routineLabelsRevision);
       if (sig === lastSyncedSigRef.current) return;
       inFlight = true;
-      if (!cancelled) setBusy(true);
+      if (!cancelled) {
+        clearTimers();
+        // 짧은 업로드는 로딩창을 아예 띄우지 않아 깜빡임을 줄인다.
+        showDelayTimerRef.current = window.setTimeout(() => {
+          busyShownAtRef.current = Date.now();
+          setBusy(true);
+        }, 450);
+      }
       try {
         const full = await mergeAllMonthShardsFromIDB();
         await pushSnapshot(full);
@@ -326,7 +351,19 @@ function useAutoSyncBackground(authUser: User | null): boolean {
         console.warn('[클라우드] 자동 동기화 업로드 실패', e);
       } finally {
         inFlight = false;
-        if (!cancelled) setBusy(false);
+        if (!cancelled) {
+          if (showDelayTimerRef.current !== null) {
+            window.clearTimeout(showDelayTimerRef.current);
+            showDelayTimerRef.current = null;
+          }
+          const elapsed = Date.now() - busyShownAtRef.current;
+          const remain = Math.max(0, 900 - elapsed);
+          if (busyRef.current) {
+            hideTimerRef.current = window.setTimeout(() => setBusy(false), remain);
+          } else {
+            setBusy(false);
+          }
+        }
       }
     };
     const timer = setInterval(() => {
@@ -334,6 +371,7 @@ function useAutoSyncBackground(authUser: User | null): boolean {
     }, 10000);
     return () => {
       cancelled = true;
+      clearTimers();
       clearInterval(timer);
     };
   }, [authUser]);
