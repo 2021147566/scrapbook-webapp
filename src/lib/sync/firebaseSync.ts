@@ -65,6 +65,26 @@ function preferGoogleRedirect(): boolean {
 
 const NON_OWNER_LOGIN_MESSAGE = '허용된 계정만 로그인할 수 있습니다.';
 
+function shouldFallbackToRedirect(err: unknown): boolean {
+  if (!(err instanceof FirebaseError)) return false;
+  return (
+    err.code === 'auth/popup-blocked' ||
+    err.code === 'auth/popup-closed-by-user' ||
+    err.code === 'auth/cancelled-popup-request' ||
+    err.code === 'auth/operation-not-supported-in-this-environment'
+  );
+}
+
+async function normalizeOwnerAfterLogin(auth: ReturnType<typeof getAuth>, user: User): Promise<User> {
+  if (!isOwnerEmail(user)) {
+    await signOut(auth);
+    authUser = null;
+    throw new Error(NON_OWNER_LOGIN_MESSAGE);
+  }
+  authUser = user;
+  return user;
+}
+
 export async function completeGoogleRedirectIfAny(): Promise<User | null> {
   if (!isFirebaseConfigured()) return null;
   ensureFirebase();
@@ -81,8 +101,10 @@ export async function completeGoogleRedirectIfAny(): Promise<User | null> {
       authUser = result.user;
       return result.user;
     }
-  } catch {
-    // ignore
+  } catch (e) {
+    // 리다이렉트 결과 파싱 오류를 숨기지 않고 원인 남김(모바일 디버깅용)
+    const detail = e instanceof FirebaseError ? `${e.code} (${e.message})` : e;
+    console.warn('[auth] redirect 결과 처리 실패', detail);
   }
   return null;
 }
@@ -92,17 +114,20 @@ export async function loginWithGoogle(): Promise<User | undefined> {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
   if (preferGoogleRedirect()) {
-    await signInWithRedirect(auth, provider);
-    return undefined;
+    // 모바일은 redirect가 안정적인 편이지만 환경에 따라 popup이 더 잘 되는 경우가 있어 먼저 시도.
+    try {
+      const result = await signInWithPopup(auth, provider);
+      return await normalizeOwnerAfterLogin(auth, result.user);
+    } catch (e) {
+      if (!shouldFallbackToRedirect(e)) {
+        throw e;
+      }
+      await signInWithRedirect(auth, provider);
+      return undefined;
+    }
   }
   const result = await signInWithPopup(auth, provider);
-  if (!isOwnerEmail(result.user)) {
-    await signOut(auth);
-    authUser = null;
-    throw new Error(NON_OWNER_LOGIN_MESSAGE);
-  }
-  authUser = result.user;
-  return result.user;
+  return await normalizeOwnerAfterLogin(auth, result.user);
 }
 
 export async function logoutFirebase(): Promise<void> {
