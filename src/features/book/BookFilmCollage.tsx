@@ -5,12 +5,6 @@ import { useScrapStore } from '../../store/scrapStore';
 import type { ScrapImage } from '../../types';
 import { bookFrameTransform } from './bookFrameTransform';
 
-const MAX_BASE_OFFSET = 180;
-
-function clampBaseOffset(n: number): number {
-  return Math.max(-MAX_BASE_OFFSET, Math.min(MAX_BASE_OFFSET, n));
-}
-
 function calcDesktopLayoutScale(): number {
   if (typeof window === 'undefined') return 1;
   const raw = 0.62 + (window.innerWidth - 980) / 1800;
@@ -97,8 +91,8 @@ export function BookFilmCollage({ dateKey, images }: { dateKey: string; images: 
             if (readOnly) return;
             const d = dragRef.current;
             if (!d || e.pointerId !== d.pointerId) return;
-            const nx = clampBaseOffset(d.ox + (e.clientX - d.startX) / d.scale);
-            const ny = clampBaseOffset(d.oy + (e.clientY - d.startY) / d.scale);
+            const nx = d.ox + (e.clientX - d.startX) / d.scale;
+            const ny = d.oy + (e.clientY - d.startY) / d.scale;
             if (rafRef.current !== null) return;
             rafRef.current = window.requestAnimationFrame(() => {
               rafRef.current = null;

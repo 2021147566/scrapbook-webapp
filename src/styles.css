@@ -1381,7 +1381,7 @@ button:hover {
   flex-direction: column;
   min-height: 0;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
   padding: 12px 28px 12px 14px;
   background: linear-gradient(145deg, #f1e7d2 0%, #e3d2b4 100%);
   border: 1px solid #c9b08d;
@@ -1464,7 +1464,7 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* 큰 폴라로이드가 스테이지 max-width에 잘리지 않도록 */
