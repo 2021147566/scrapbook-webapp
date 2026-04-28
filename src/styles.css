@@ -1458,7 +1458,7 @@ button:hover {
 .book-collage-wrap {
   /* 데스크톱: 창이 좁아질수록 프레임/겹침 간격도 같이 줄여 배치 붕괴 방지 */
   --book-layout-scale: clamp(0.62, calc(0.62 + ((100vw - 980px) / 1800)), 1);
-  --book-polaroid-size: clamp(120px, calc(222px * var(--book-layout-scale)), 222px);
+  --book-polaroid-size: clamp(100px, calc(222px * var(--book-layout-scale)), 222px);
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
